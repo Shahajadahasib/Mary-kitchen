@@ -1,0 +1,61 @@
+# Core
+Django==4.2.16
+djangorestframework==3.15.2
+djangorestframework-simplejwt==5.3.1
+django-cors-headers==4.4.0
+
+# Database
+psycopg2-binary==2.9.10
+dj-database-url==2.2.0
+
+# Auth & Security
+PyJWT==2.9.0
+django-allauth==0.63.6
+cryptography==43.0.1
+
+# Storage & Media
+Pillow==10.4.0
+django-storages==1.14.4
+boto3==1.35.0
+
+# Caching
+django-redis==5.4.0
+redis==5.1.1
+
+# Payments
+stripe==10.12.0
+
+# Email
+django-anymail==11.1
+
+# Tasks (Celery for async notifications)
+celery==5.4.0
+django-celery-beat==2.7.0
+django-celery-results==2.5.1
+
+# Search
+django-filter==24.3
+
+# Utilities
+python-decouple==3.8
+python-slugify==8.0.4
+Faker==30.3.0
+
+# API Documentation
+drf-spectacular==0.27.2
+
+# Nested routers
+drf-nested-routers==0.93.5
+
+# Rate Limiting
+django-ratelimit==4.1.0
+
+# Geolocation (delivery zone calculation)
+geopy==2.4.1
+
+# Development
+django-debug-toolbar==4.4.6
+
+# Production
+gunicorn==23.0.0
+whitenoise==6.7.0

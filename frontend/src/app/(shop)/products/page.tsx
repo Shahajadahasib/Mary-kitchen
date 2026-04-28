@@ -1,0 +1,123 @@
+"use client";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useSearchParams, useRouter } from "next/navigation";
+import api from "@/lib/api";
+import ProductCard from "@/components/product/ProductCard";
+import ProductFilters from "@/components/product/ProductFilters";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Search, SlidersHorizontal, X } from "lucide-react";
+
+export default function ProductsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [showFilters, setShowFilters] = useState(false);
+  const [search, setSearch] = useState(searchParams.get("search") || "");
+
+  const params = new URLSearchParams(searchParams.toString());
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["products", params.toString()],
+    queryFn: () => api.get(`/products/?${params.toString()}`).then((r) => r.data),
+  });
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newParams = new URLSearchParams(searchParams.toString());
+    if (search) newParams.set("search", search);
+    else newParams.delete("search");
+    newParams.delete("page");
+    router.push(`/products?${newParams.toString()}`);
+  };
+
+  const handlePageChange = (page: number) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.set("page", String(page));
+    router.push(`/products?${newParams.toString()}`);
+  };
+
+  return (
+    <div className="container-xl py-8">
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <form onSubmit={handleSearch} className="flex-1 flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search products..."
+              className="input-field pl-10"
+            />
+          </div>
+          <button type="submit" className="btn-primary px-5">Search</button>
+        </form>
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="btn-secondary flex items-center gap-2"
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          Filters
+        </button>
+      </div>
+
+      <div className="flex gap-6">
+        {/* Filters sidebar */}
+        {showFilters && (
+          <div className="w-64 flex-shrink-0">
+            <ProductFilters />
+          </div>
+        )}
+
+        {/* Products grid */}
+        <div className="flex-1">
+          {data && (
+            <p className="text-sm text-gray-500 mb-4">
+              {data.count} product{data.count !== 1 ? "s" : ""} found
+            </p>
+          )}
+
+          {isLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} className="h-72 rounded-xl" />
+              ))}
+            </div>
+          ) : data?.results?.length === 0 ? (
+            <div className="text-center py-20 text-gray-400">
+              <Search className="w-12 h-12 mx-auto mb-4 opacity-40" />
+              <p className="text-lg font-medium">No products found</p>
+              <p className="text-sm">Try adjusting your filters</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {data?.results?.map((p: any) => (
+                  <ProductCard key={p.id} product={p} />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {data?.total_pages > 1 && (
+                <div className="flex justify-center gap-2 mt-8">
+                  {Array.from({ length: data.total_pages }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handlePageChange(i + 1)}
+                      className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                        data.current_page === i + 1
+                          ? "bg-primary-700 text-white"
+                          : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
