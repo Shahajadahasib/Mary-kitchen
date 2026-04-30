@@ -9,6 +9,7 @@ import api from "@/lib/api";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { formatCurrency } from "@/lib/utils";
+import { getOrCreateSessionId } from "@/lib/session";
 import {
   MapPin, Package, CreditCard, Loader2, Plus, Edit2, Star,
   Home, Briefcase, CheckCircle, Trash2, AlertTriangle, XCircle, Truck,
@@ -318,6 +319,7 @@ export default function CheckoutPage() {
         order_type: orderType,
         address_id: orderType === "delivery" ? selectedAddress : null,
         notes,
+        session_id: getOrCreateSessionId(),
       });
       const order = orderResp.data;
 

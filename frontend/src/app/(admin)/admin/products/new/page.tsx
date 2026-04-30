@@ -11,6 +11,7 @@ export default function NewProductPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showCatModal, setShowCatModal] = useState(false);
   const [catForm, setCatForm] = useState({ name: "", description: "" });
   const [catLoading, setCatLoading] = useState(false);
@@ -66,6 +67,48 @@ export default function NewProductPage() {
     return fallback;
   };
 
+  const parseFieldErrors = (data: any): Record<string, string> => {
+    const errors: Record<string, string> = {};
+    if (Array.isArray(data?.errors)) {
+      data.errors.forEach((error: any) => {
+        if (error?.field) errors[error.field] = error.message || "Invalid value";
+      });
+    }
+    Object.entries(data ?? {}).forEach(([field, value]) => {
+      if (
+        field === "errors" ||
+        field === "message" ||
+        field === "detail" ||
+        field === "non_field_errors"
+      ) {
+        return;
+      }
+      if (Array.isArray(value)) errors[field] = String(value[0]);
+      else if (typeof value === "string") errors[field] = value;
+    });
+    return errors;
+  };
+
+  const firstMsg = (v: unknown): string | undefined => {
+    if (Array.isArray(v) && v.length) return String(v[0]);
+    if (typeof v === "string" && v.trim()) return v;
+    return undefined;
+  };
+
+  const scrollToFirstError = (errors: Record<string, string>) => {
+    const firstField = Object.keys(errors)[0];
+    if (!firstField) return;
+    requestAnimationFrame(() => {
+      document.querySelector(`[data-field="${firstField}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
+
+  const inputClass = (field: string, extra = "") =>
+    `input-field ${fieldErrors[field] ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""} ${extra}`;
+
+  const FieldError = ({ field }: { field: string }) =>
+    fieldErrors[field] ? <p className="text-xs text-red-600 mt-1">{fieldErrors[field]}</p> : null;
+
   const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!catForm.name.trim()) { toast.error("Category name is required"); return; }
@@ -86,15 +129,27 @@ export default function NewProductPage() {
 
   const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const value = e.target.type === "checkbox" ? (e.target as HTMLInputElement).checked : e.target.value;
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const { [field]: _removed, ...rest } = prev;
+      return rest;
+    });
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.base_price || !form.category) {
-      toast.error("Name, price and category are required");
+      const errors = {
+        ...(!form.name ? { name: "Product name is required" } : {}),
+        ...(!form.base_price ? { base_price: "Price is required" } : {}),
+        ...(!form.category ? { category: "Category is required" } : {}),
+      };
+      setFieldErrors(errors);
+      scrollToFirstError(errors);
       return;
     }
+    setFieldErrors({});
     setLoading(true);
     try {
       // Step 1 — create the product
@@ -132,7 +187,29 @@ export default function NewProductPage() {
       qc.invalidateQueries({ queryKey: ["admin-products"] });
       router.push("/admin/products");
     } catch (err: any) {
-      toast.error(parseApiError(err, "Failed to create product"));
+      const data = err?.response?.data;
+      if (!data) {
+        toast.error("Failed to submit form");
+        return;
+      }
+
+      const errors = parseFieldErrors(data);
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        scrollToFirstError(errors);
+        return;
+      }
+
+      const errorMessage =
+        firstMsg(data.non_field_errors) ||
+        firstMsg(data.detail) ||
+        (typeof data.message === "string" ? data.message : undefined);
+
+      if (errorMessage) {
+        toast.error(errorMessage);
+      } else if (Object.keys(errors).length === 0) {
+        toast.error(parseApiError(err, "Failed to submit form"));
+      }
     } finally {
       setLoading(false);
     }
@@ -191,15 +268,17 @@ export default function NewProductPage() {
         {/* Basic Info */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
           <h3 className="font-semibold text-gray-800">Basic Information</h3>
-          <div>
+          <div data-field="name">
             <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
-            <input required value={form.name} onChange={update("name")} className="input-field" placeholder="e.g. Fresh Mango" />
+            <input required value={form.name} onChange={update("name")} className={inputClass("name")} placeholder="e.g. Fresh Mango" />
+            <FieldError field="name" />
           </div>
-          <div>
+          <div data-field="description">
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea value={form.description} onChange={update("description")} rows={4} className="input-field resize-none" placeholder="Product description..." />
+            <textarea value={form.description} onChange={update("description")} rows={4} className={inputClass("description", "resize-none")} placeholder="Product description..." />
+            <FieldError field="description" />
           </div>
-          <div>
+          <div data-field="category">
             <div className="flex items-center justify-between mb-1">
               <label className="block text-sm font-medium text-gray-700">Category *</label>
               <button
@@ -210,12 +289,13 @@ export default function NewProductPage() {
                 <Plus className="w-3 h-3" /> New Category
               </button>
             </div>
-            <select required value={form.category} onChange={update("category")} className="input-field">
+            <select required value={form.category} onChange={update("category")} className={inputClass("category")}>
               <option value="">Select a category</option>
               {categories?.map((c: any) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
+            <FieldError field="category" />
             {(!categories || categories.length === 0) && (
               <p className="text-xs text-amber-600 mt-1">No categories yet — click "New Category" to create one first.</p>
             )}
@@ -226,13 +306,15 @@ export default function NewProductPage() {
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
           <h3 className="font-semibold text-gray-800">Pricing</h3>
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div data-field="base_price">
               <label className="block text-sm font-medium text-gray-700 mb-1">Price (AUD) *</label>
-              <input required type="number" step="0.01" min="0" value={form.base_price} onChange={update("base_price")} className="input-field" placeholder="0.00" />
+              <input required type="number" step="0.01" min="0" value={form.base_price} onChange={update("base_price")} className={inputClass("base_price")} placeholder="0.00" />
+              <FieldError field="base_price" />
             </div>
-            <div>
+            <div data-field="compare_price">
               <label className="block text-sm font-medium text-gray-700 mb-1">Compare Price <span className="text-gray-400 font-normal">(before discount)</span></label>
-              <input type="number" step="0.01" min="0" value={form.compare_price} onChange={update("compare_price")} className="input-field" placeholder="0.00" />
+              <input type="number" step="0.01" min="0" value={form.compare_price} onChange={update("compare_price")} className={inputClass("compare_price")} placeholder="0.00" />
+              <FieldError field="compare_price" />
             </div>
           </div>
         </div>
@@ -241,17 +323,19 @@ export default function NewProductPage() {
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
           <h3 className="font-semibold text-gray-800">Inventory</h3>
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div data-field="sku">
               <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
-              <input value={form.sku} onChange={update("sku")} className="input-field" placeholder="e.g. MNG-001" />
+              <input value={form.sku} onChange={update("sku")} className={inputClass("sku")} placeholder="e.g. MNG-001" />
+              <FieldError field="sku" />
             </div>
-            <div>
+            <div data-field="stock_quantity">
               <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity</label>
-              <input type="number" min="0" value={form.stock_quantity} onChange={update("stock_quantity")} className="input-field" />
+              <input type="number" min="0" value={form.stock_quantity} onChange={update("stock_quantity")} className={inputClass("stock_quantity")} />
+              <FieldError field="stock_quantity" />
             </div>
-            <div>
+            <div data-field="unit">
               <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-              <select value={form.unit} onChange={update("unit")} className="input-field">
+              <select value={form.unit} onChange={update("unit")} className={inputClass("unit")}>
                 <option value="kg">kg</option>
                 <option value="g">g</option>
                 <option value="L">L</option>
@@ -261,15 +345,18 @@ export default function NewProductPage() {
                 <option value="dozen">dozen</option>
                 <option value="box">box</option>
               </select>
+              <FieldError field="unit" />
             </div>
-            <div>
+            <div data-field="weight">
               <label className="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
-              <input type="number" step="0.01" min="0" value={form.weight} onChange={update("weight")} className="input-field" placeholder="e.g. 0.5" />
+              <input type="number" step="0.01" min="0" value={form.weight} onChange={update("weight")} className={inputClass("weight")} placeholder="e.g. 0.5" />
+              <FieldError field="weight" />
             </div>
           </div>
-          <div>
+          <div data-field="tags">
             <label className="block text-sm font-medium text-gray-700 mb-1">Tags <span className="text-gray-400 font-normal">(comma separated)</span></label>
-            <input value={form.tags} onChange={update("tags")} className="input-field" placeholder="e.g. fresh, organic, local" />
+            <input value={form.tags} onChange={update("tags")} className={inputClass("tags")} placeholder="e.g. fresh, organic, local" />
+            <FieldError field="tags" />
           </div>
         </div>
 

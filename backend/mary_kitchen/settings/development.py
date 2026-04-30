@@ -18,6 +18,15 @@ CORS_ALLOW_ALL_ORIGINS = True
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 
+# Base uses Redis-backed cache + cache-backed sessions; without redis-server
+# that raises "Unable to create a new session key". LocMem is enough for local dev.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "mary_kitchen_dev",
+    }
+}
+
 # Logging
 LOGGING = {
     "version": 1,

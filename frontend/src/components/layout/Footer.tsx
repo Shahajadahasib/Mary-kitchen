@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { ShoppingBag, MapPin, Phone, Mail, Shield } from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
 
 const SHOP_LINKS = [
   { label: "All Products", href: "/products" },
@@ -9,9 +12,12 @@ const SHOP_LINKS = [
   { label: "Rice & Grains", href: "/products?category=rice-grains" },
 ];
 
-const ACCOUNT_LINKS = [
+const ACCOUNT_LINKS_GUEST = [
   { label: "Login", href: "/login" },
   { label: "Register", href: "/register" },
+];
+
+const ACCOUNT_LINKS_AUTH = [
   { label: "My Orders", href: "/orders" },
   { label: "My Profile", href: "/profile" },
   { label: "Wishlist", href: "/profile#wishlist" },
@@ -26,6 +32,13 @@ const INFO_LINKS = [
 ];
 
 export default function Footer() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  // hasHydrated prevents a SSR/client mismatch: render guest links on both
+  // server and first client paint, then swap once localStorage is read.
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  const accountLinks =
+    hasHydrated && isAuthenticated ? ACCOUNT_LINKS_AUTH : ACCOUNT_LINKS_GUEST;
+
   return (
     <footer className="bg-gray-900 text-gray-300 pt-14 pb-6 mt-auto">
       <div className="container-xl">
@@ -71,7 +84,7 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold text-white mb-4">Account</h3>
             <ul className="space-y-2.5 text-sm">
-              {ACCOUNT_LINKS.map((l) => (
+              {accountLinks.map((l) => (
                 <li key={l.href}>
                   <Link href={l.href} className="text-gray-400 hover:text-white transition-colors">
                     {l.label}

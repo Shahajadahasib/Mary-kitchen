@@ -45,6 +45,7 @@ class Order(BaseModel):
 
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="unpaid")
     stripe_payment_intent_id = models.CharField(max_length=200, blank=True, db_index=True)
+    session_id = models.CharField(max_length=255, null=True, blank=True)
 
     has_out_of_stock_items = models.BooleanField(default=False)
     admin_notified_out_of_stock = models.BooleanField(default=False)

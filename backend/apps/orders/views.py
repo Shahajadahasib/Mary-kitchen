@@ -1,4 +1,10 @@
 """Order views."""
+import datetime
+from decimal import Decimal
+
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
+from django.db.models.functions import TruncDate
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -6,7 +12,7 @@ from rest_framework.views import APIView
 
 from core.permissions import ADMIN_API_PERMISSION_CLASSES, IsOwnerOrAdmin
 
-from .models import Order
+from .models import Order, OrderItem
 from .serializers import (
     AdminOrderSerializer,
     AdminOrderStatusUpdateSerializer,
@@ -30,6 +36,7 @@ class CheckoutView(APIView):
                 order_type=d["order_type"],
                 address_id=d.get("address_id"),
                 notes=d.get("notes", ""),
+                session_id=d.get("session_id", ""),
             )
         except ValueError as e:
             return Response({"success": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -114,6 +121,136 @@ class AdminOrderDetailView(generics.RetrieveUpdateAPIView):
     permission_classes = ADMIN_API_PERMISSION_CLASSES
     queryset = Order.objects.all().prefetch_related("items", "status_history")
     lookup_field = "order_number"
+
+
+class AdminRevenueView(APIView):
+    """GET /api/v1/orders/admin/revenue/?days=7
+
+    Returns daily revenue totals for paid orders over the last N days (max 90).
+    Days with zero revenue are included so the chart always shows a full range.
+    Response shape: [{ "name": "Mon", "revenue": 450.00 }, ...]
+    """
+
+    permission_classes = ADMIN_API_PERMISSION_CLASSES
+
+    def get(self, request):
+        try:
+            days = max(1, min(int(request.query_params.get("days", 7)), 90))
+        except (TypeError, ValueError):
+            days = 7
+
+        since = timezone.now().date() - datetime.timedelta(days=days - 1)
+
+        rows = (
+            Order.objects.filter(
+                created_at__date__gte=since,
+                payment_status="paid",
+            )
+            .annotate(day=TruncDate("created_at"))
+            .values("day")
+            .annotate(revenue=Sum("total_amount"))
+            .order_by("day")
+        )
+
+        revenue_by_date = {row["day"]: float(row["revenue"] or 0) for row in rows}
+
+        result = []
+        for i in range(days):
+            d = since + datetime.timedelta(days=i)
+            result.append({
+                "name": d.strftime("%a"),
+                "revenue": revenue_by_date.get(d, 0),
+            })
+
+        return Response(result)
+
+
+class AdminDashboardStatsView(APIView):
+    """GET /api/v1/orders/admin/stats/ – aggregate admin dashboard metrics."""
+
+    permission_classes = ADMIN_API_PERMISSION_CLASSES
+
+    def get(self, request):
+        now = timezone.now()
+        current_start = now - datetime.timedelta(days=7)
+        previous_start = now - datetime.timedelta(days=14)
+
+        current_orders = Order.objects.filter(created_at__gte=current_start)
+        current_paid_orders = current_orders.filter(payment_status="paid")
+        previous_paid_orders = Order.objects.filter(
+            created_at__gte=previous_start,
+            created_at__lt=current_start,
+            payment_status="paid",
+        )
+
+        revenue_7d = float(current_paid_orders.aggregate(total=Sum("total_amount"))["total"] or 0)
+        previous_revenue_7d = float(previous_paid_orders.aggregate(total=Sum("total_amount"))["total"] or 0)
+        orders_count = current_orders.count()
+        paid_orders_count = current_paid_orders.count()
+        aov = revenue_7d / paid_orders_count if paid_orders_count else 0.0
+        if previous_revenue_7d == 0:
+            growth = 100.0 if revenue_7d > 0 else 0.0
+        else:
+            growth = ((revenue_7d - previous_revenue_7d) / previous_revenue_7d) * 100
+
+        status_breakdown = list(
+            current_orders.values("payment_status")
+            .annotate(count=Count("id"))
+            .order_by("payment_status")
+        )
+
+        return Response(
+            {
+                "revenue_7d": revenue_7d,
+                "orders_count": orders_count,
+                "aov": float(aov),
+                "growth": float(growth),
+                "status_breakdown": status_breakdown,
+            }
+        )
+
+
+class AdminTopProductsView(APIView):
+    """GET /api/v1/orders/admin/top-products/?days=7 – top products by paid revenue."""
+
+    permission_classes = ADMIN_API_PERMISSION_CLASSES
+
+    def get(self, request):
+        try:
+            days = max(1, min(int(request.query_params.get("days", 7)), 90))
+        except (TypeError, ValueError):
+            days = 7
+
+        since = timezone.now().date() - datetime.timedelta(days=days - 1)
+        line_revenue = ExpressionWrapper(
+            F("quantity") * F("unit_price"),
+            output_field=DecimalField(max_digits=12, decimal_places=2),
+        )
+
+        rows = (
+            OrderItem.objects.filter(
+                order__created_at__date__gte=since,
+                order__payment_status="paid",
+            )
+            .values("product_id", "product_name")
+            .annotate(
+                total_quantity=Sum("quantity"),
+                total_revenue=Sum(line_revenue),
+            )
+            .order_by("-total_revenue")[:5]
+        )
+
+        return Response(
+            [
+                {
+                    "product_id": row["product_id"],
+                    "name": row["product_name"],
+                    "total_quantity": row["total_quantity"] or 0,
+                    "total_revenue": float(row["total_revenue"] or Decimal("0")),
+                }
+                for row in rows
+            ]
+        )
 
 
 class AdminOrderStatusUpdateView(APIView):

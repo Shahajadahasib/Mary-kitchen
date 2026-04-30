@@ -12,7 +12,7 @@ from .models import Order, OrderItem, OrderStatusHistory
 
 
 @transaction.atomic
-def create_order_from_cart(user, order_type: str, address_id=None, notes: str = "") -> Order:
+def create_order_from_cart(user, order_type: str, address_id=None, notes: str = "", session_id: str = "") -> Order:
     """
     Convert the user's cart into a confirmed Order.
     Reduces stock on in-stock items.
@@ -72,6 +72,7 @@ def create_order_from_cart(user, order_type: str, address_id=None, notes: str = 
         delivery_fee=delivery_fee,
         distance_km=distance_km,
         notes=notes,
+        session_id=session_id or None,
         payment_status="unpaid",
         status="pending",
     )
