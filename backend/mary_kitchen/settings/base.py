@@ -5,9 +5,11 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-from decouple import config, Csv
+from decouple import AutoConfig, Csv
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+# Always load backend/.env (not cwd), so keys work when manage.py is run from repo root.
+config = AutoConfig(search_path=str(BASE_DIR))
 
 SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", default=False, cast=bool)

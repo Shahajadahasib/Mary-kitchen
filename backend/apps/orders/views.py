@@ -2,6 +2,8 @@
 import datetime
 from decimal import Decimal
 
+import stripe
+from django.db import transaction
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
@@ -12,6 +14,8 @@ from rest_framework.views import APIView
 
 from core.permissions import ADMIN_API_PERMISSION_CLASSES, IsOwnerOrAdmin
 
+from apps.payments.services import create_checkout_session
+
 from .models import Order, OrderItem
 from .serializers import (
     AdminOrderSerializer,
@@ -19,7 +23,12 @@ from .serializers import (
     CheckoutSerializer,
     OrderSerializer,
 )
-from .services import create_order_from_cart, update_order_status
+from .services import (
+    abandon_unpaid_pending_checkouts,
+    create_order_from_cart,
+    rollback_checkout_order,
+    update_order_status,
+)
 
 
 class CheckoutView(APIView):
@@ -31,24 +40,36 @@ class CheckoutView(APIView):
         serializer.is_valid(raise_exception=True)
         d = serializer.validated_data
         try:
-            order = create_order_from_cart(
-                user=request.user,
-                order_type=d["order_type"],
-                address_id=d.get("address_id"),
-                notes=d.get("notes", ""),
-                session_id=d.get("session_id", ""),
+            with transaction.atomic():
+                abandon_unpaid_pending_checkouts(request.user)
+                order = create_order_from_cart(
+                    user=request.user,
+                    order_type=d["order_type"],
+                    address_id=d.get("address_id"),
+                    notes=d.get("notes", ""),
+                    session_id=d.get("session_id", ""),
+                )
+                try:
+                    payment = create_checkout_session(order)
+                except stripe.error.StripeError:
+                    rollback_checkout_order(order)
+                    raise
+
+            return Response(
+                {
+                    "success": True,
+                    "message": "Order created. Redirect to Stripe to pay.",
+                    "data": {
+                        "order": OrderSerializer(order).data,
+                        "payment": payment,
+                    },
+                },
+                status=status.HTTP_201_CREATED,
             )
         except ValueError as e:
             return Response({"success": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(
-            {
-                "success": True,
-                "message": "Order created. Proceed to payment.",
-                "data": OrderSerializer(order).data,
-            },
-            status=status.HTTP_201_CREATED,
-        )
+        except stripe.error.StripeError as e:
+            return Response({"success": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class OrderListView(generics.ListAPIView):

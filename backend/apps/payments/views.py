@@ -13,11 +13,17 @@ from apps.orders.models import Order
 
 from .models import Payment
 from .serializers import PaymentSerializer
-from .services import create_payment_intent, handle_payment_failure, handle_payment_success, refund_payment
+from .services import (
+    create_checkout_session,
+    handle_checkout_session_paid,
+    handle_payment_failure,
+    handle_payment_success,
+    refund_payment,
+)
 
 
 class CreatePaymentIntentView(APIView):
-    """POST /api/v1/payments/create-intent/ – create Stripe PaymentIntent."""
+    """POST /api/v1/payments/create-intent/ — create a new Stripe Checkout Session for an unpaid order."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -34,10 +40,69 @@ class CreatePaymentIntentView(APIView):
             return Response({"success": False, "message": "Order is already paid."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            result = create_payment_intent(order)
+            result = create_checkout_session(order)
             return Response({"success": True, "data": result})
         except stripe.error.StripeError as e:
             return Response({"success": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CheckoutSessionVerifyView(APIView):
+    """GET /api/v1/payments/checkout-session/?session_id= — after Stripe-hosted Checkout redirect."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        session_id = request.query_params.get("session_id")
+        if not session_id:
+            return Response(
+                {"success": False, "message": "session_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        try:
+            session = stripe.checkout.Session.retrieve(session_id)
+        except stripe.error.StripeError as e:
+            return Response({"success": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        if session.get("payment_status") != "paid":
+            return Response(
+                {"success": False, "message": "Checkout session is not paid yet."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        meta = session.get("metadata") or {}
+        order_id = meta.get("order_id")
+        order_number = meta.get("order_number") or session.get("client_reference_id")
+        if not order_id and not order_number:
+            return Response(
+                {"success": False, "message": "Session has no order metadata."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            if order_id:
+                order = Order.objects.get(id=order_id, user=request.user)
+            else:
+                order = Order.objects.get(order_number=order_number, user=request.user)
+        except Order.DoesNotExist:
+            return Response(
+                {"success": False, "message": "Order not found for this session."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        handle_checkout_session_paid(session)
+        order.refresh_from_db()
+
+        return Response(
+            {
+                "success": True,
+                "data": {
+                    "order_number": order.order_number,
+                    "payment_status": order.payment_status,
+                    "stripe_payment_status": session.get("payment_status"),
+                },
+            }
+        )
 
 
 class PaymentWebhookView(APIView):
@@ -57,14 +122,21 @@ class PaymentWebhookView(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         event_type = event["type"]
-        payment_intent = event["data"]["object"]
-        pi_id = payment_intent.get("id")
+        obj = event["data"]["object"]
 
-        if event_type == "payment_intent.succeeded":
-            handle_payment_success(pi_id)
+        if event_type == "checkout.session.completed":
+            handle_checkout_session_paid(obj)
+        elif event_type == "payment_intent.succeeded":
+            pi_id = obj.get("id")
+            if pi_id:
+                handle_payment_success(pi_id)
         elif event_type in ("payment_intent.payment_failed", "payment_intent.canceled"):
-            failure_msg = payment_intent.get("last_payment_error", {}).get("message", "")
-            handle_payment_failure(pi_id, failure_msg)
+            pi_id = obj.get("id")
+            if pi_id:
+                failure_msg = obj.get("last_payment_error", {}) or {}
+                if isinstance(failure_msg, dict):
+                    failure_msg = failure_msg.get("message", "")
+                handle_payment_failure(pi_id, failure_msg or "")
 
         return Response({"received": True})
 

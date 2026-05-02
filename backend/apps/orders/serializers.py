@@ -63,3 +63,4 @@ class AdminOrderSerializer(OrderSerializer):
     """Extended order serializer for admin with extra fields."""
     class Meta(OrderSerializer.Meta):
         fields = OrderSerializer.Meta.fields + ["admin_notes", "admin_notified_out_of_stock", "cancelled_at", "cancellation_reason"]
+        read_only_fields = [*OrderSerializer.Meta.read_only_fields, "status"]

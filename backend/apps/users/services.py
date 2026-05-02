@@ -1,10 +1,13 @@
 """Business logic for user operations."""
+import logging
 from datetime import timedelta
 
 from django.conf import settings
 from django.utils import timezone
 
 from .models import OTPCode, User
+
+logger = logging.getLogger(__name__)
 
 
 def send_otp(email: str, purpose: str) -> OTPCode:
@@ -29,7 +32,13 @@ def send_otp(email: str, purpose: str) -> OTPCode:
         pass
 
     from apps.notifications.tasks import send_otp_email
-    send_otp_email.delay(email=email, code=code, purpose=purpose)
+
+    try:
+        send_otp_email.delay(email=email, code=code, purpose=purpose)
+    except Exception:
+        otp.delete()
+        logger.exception("send_otp: could not dispatch OTP email for %s purpose=%s", email, purpose)
+        raise
 
     return otp
 

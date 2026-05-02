@@ -35,7 +35,8 @@ export default function Header() {
     queryKey: ["unread-notifications"],
     queryFn: () => api.get("/notifications/unread-count/").then((r) => r.data.unread_count),
     enabled: isAuthenticated,
-    refetchInterval: 60000,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
   useEffect(() => {

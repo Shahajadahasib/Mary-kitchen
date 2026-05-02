@@ -3,20 +3,16 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import api from "@/lib/api";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { formatCurrency } from "@/lib/utils";
 import { getOrCreateSessionId } from "@/lib/session";
 import {
-  MapPin, Package, CreditCard, Loader2, Plus, Edit2, Star,
-  Home, Briefcase, CheckCircle, Trash2, AlertTriangle, XCircle, Truck,
+  MapPin, Package, Loader2, Plus, Edit2, Star,
+  Home, Briefcase, Trash2, AlertTriangle, XCircle, Truck,
 } from "lucide-react";
 import AddressFormModal from "@/components/ui/AddressFormModal";
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
 // ─── Delivery fee state ───────────────────────────────────────────────────────
 
@@ -33,48 +29,6 @@ type DeliveryFeeState =
       estimatedDays: number;
       distanceKm: number;
     };
-
-// ─── Stripe payment sub-form ──────────────────────────────────────────────────
-
-function CheckoutForm({ orderNumber, clientSecret }: { orderNumber: string; clientSecret: string }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const router = useRouter();
-  const [paying, setPaying] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-
-    setPaying(true);
-    const cardElement = elements.getElement(CardElement);
-    if (!cardElement) return;
-
-    const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-      payment_method: { card: cardElement },
-    });
-
-    if (error) {
-      toast.error(error.message || "Payment failed");
-      setPaying(false);
-    } else if (paymentIntent?.status === "succeeded") {
-      toast.success("Payment successful!");
-      router.push(`/orders/${orderNumber}`);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <div className="border border-gray-200 rounded-lg p-4 mb-4 bg-white">
-        <CardElement options={{ style: { base: { fontSize: "16px", color: "#374151", fontFamily: "Inter, sans-serif" } } }} />
-      </div>
-      <button type="submit" disabled={!stripe || paying} className="btn-primary w-full flex items-center justify-center gap-2">
-        {paying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-        {paying ? "Processing..." : "Pay Now"}
-      </button>
-    </form>
-  );
-}
 
 // ─── Address card ─────────────────────────────────────────────────────────────
 
@@ -157,8 +111,6 @@ export default function CheckoutPage() {
   const [orderType, setOrderType] = useState<"delivery" | "pickup">("delivery");
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [notes, setNotes] = useState("");
-  const [step, setStep] = useState<"details" | "payment">("details");
-  const [orderData, setOrderData] = useState<{ orderNumber: string; clientSecret: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [deliveryFeeState, setDeliveryFeeState] = useState<DeliveryFeeState>({ status: "idle" });
@@ -186,7 +138,15 @@ export default function CheckoutPage() {
     }
   }, [hasHydrated, isAuthenticated]);
 
-  const { data: addresses } = useQuery({
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("canceled") !== "1") return;
+    toast.error("Payment was canceled. Your cart is unchanged.");
+    window.history.replaceState({}, "", "/checkout");
+  }, []);
+
+  const { data: addresses } = useQuery<any>({
     queryKey: ["addresses"],
     queryFn: () => api.get("/users/addresses/").then((r) => r.data),
     enabled: isAuthenticated,
@@ -321,15 +281,22 @@ export default function CheckoutPage() {
         notes,
         session_id: getOrCreateSessionId(),
       });
-      const order = orderResp.data;
+      const payload = orderResp.data;
+      const payment = payload.payment;
 
-      const { data: paymentResp } = await api.post("/payments/create-intent/", {
-        order_number: order.order_number,
-      });
-      setOrderData({ orderNumber: order.order_number, clientSecret: paymentResp.data.client_secret });
-      setStep("payment");
+      const checkoutUrl = payment?.checkout_url as string | undefined;
+      if (!checkoutUrl) {
+        toast.error("Checkout succeeded but Stripe payment link is missing. Please try again.");
+        await fetchCart();
+        return;
+      }
+
+      await fetchCart();
+      toast.success("Redirecting to secure Stripe Checkout…");
+      window.location.href = checkoutUrl;
     } catch (e: any) {
       toast.error(e?.response?.data?.message || "Failed to place order");
+      await fetchCart();
     } finally {
       setLoading(false);
     }
@@ -357,8 +324,7 @@ export default function CheckoutPage() {
     <div className="container-xl py-8">
       <h1 className="section-title mb-6">Checkout</h1>
 
-      {step === "details" ? (
-        <div className="grid lg:grid-cols-3 gap-8">
+      <div className="grid lg:grid-cols-3 gap-8">
           {/* Left column */}
           <div className="lg:col-span-2 space-y-6">
 
@@ -582,25 +548,14 @@ export default function CheckoutPage() {
                         : invalidCount > 0 ? "Place Order (available items)"
                           : "Place Order"}
                   </button>
-                  <p className="text-xs text-gray-400 text-center mt-2">You'll be redirected to payment</p>
+                  <p className="text-xs text-gray-400 text-center mt-2">
+                    You will leave this site to pay on Stripe’s secure checkout page (Powered by Stripe).
+                  </p>
                 </>
               )}
             </div>
           </div>
         </div>
-      ) : orderData ? (
-        <div className="max-w-lg mx-auto">
-          <div className="card p-8">
-            <h2 className="font-bold text-xl text-gray-900 mb-2 flex items-center gap-2">
-              <CreditCard className="w-6 h-6 text-primary-600" /> Complete Payment
-            </h2>
-            <p className="text-gray-500 text-sm mb-6">Order #{orderData.orderNumber} – Enter your card details below</p>
-            <Elements stripe={stripePromise} options={{ clientSecret: orderData.clientSecret }}>
-              <CheckoutForm {...orderData} />
-            </Elements>
-          </div>
-        </div>
-      ) : null}
 
       {/* Address add/edit modal */}
       <AddressFormModal

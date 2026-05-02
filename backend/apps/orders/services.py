@@ -1,14 +1,56 @@
 """Order creation and management service."""
 from decimal import Decimal
 
+import stripe
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
 from apps.cart.models import Cart
 from apps.delivery.services import get_delivery_fee
+from apps.products.models import Product, ProductVariant
 from apps.users.models import Address
 
 from .models import Order, OrderItem, OrderStatusHistory
+
+
+def abandon_unpaid_pending_checkouts(user) -> None:
+    """
+    Remove stale unpaid checkout orders so the user can place a new one from the same cart
+    without double stock deductions. Expires Stripe Checkout / cancels PaymentIntent when possible.
+    """
+    qs = Order.objects.filter(
+        user=user,
+        status="pending",
+        payment_status__in=["unpaid", "failed"],
+    )
+    for order in qs:
+        rollback_checkout_order(order)
+
+
+def rollback_checkout_order(order: Order) -> None:
+    """Expire Stripe Checkout if any, cancel PI, restore stock, delete the draft order."""
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+
+    if order.stripe_checkout_session_id:
+        try:
+            stripe.checkout.Session.expire(order.stripe_checkout_session_id)
+        except stripe.error.StripeError:
+            pass
+
+    if order.stripe_payment_intent_id:
+        try:
+            stripe.PaymentIntent.cancel(order.stripe_payment_intent_id)
+        except stripe.error.StripeError:
+            pass
+
+    for item in order.items.select_related("product", "variant"):
+        if item.was_out_of_stock:
+            continue
+        stock_obj: Product | ProductVariant = item.variant if item.variant_id else item.product
+        stock_obj.stock_quantity += item.quantity
+        stock_obj.save(update_fields=["stock_quantity"])
+    order.delete()
 
 
 @transaction.atomic
@@ -121,8 +163,6 @@ def create_order_from_cart(user, order_type: str, address_id=None, notes: str = 
     order.has_out_of_stock_items = has_oos
     order.calculate_totals()
 
-    cart.clear()
-
     note = "Order created"
     if excluded_names:
         note += f" ({len(excluded_names)} unavailable item(s) excluded: {', '.join(excluded_names)})"
@@ -159,6 +199,21 @@ def update_order_status(order: Order, new_status: str, changed_by, note: str = "
         to_status=new_status,
         changed_by=changed_by,
         note=note,
+    )
+
+    from apps.notifications.models import Notification
+    from apps.notifications.order_status_copy import (
+        order_status_notification_message,
+        order_status_notification_title,
+    )
+
+    Notification.objects.create(
+        user=order.user,
+        title=order_status_notification_title(new_status),
+        message=order_status_notification_message(order.order_number, new_status),
+        notification_type="order_update",
+        action_url=f"/orders/{order.order_number}",
+        metadata={"order_number": order.order_number, "status": new_status},
     )
 
     from apps.notifications.tasks import send_order_status_update_email

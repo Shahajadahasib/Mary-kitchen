@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import AdminOrderNotifications from "@/components/admin/AdminOrderNotifications";
 import { useAuthStore } from "@/store/authStore";
 import {
   LayoutDashboard, Package, ShoppingCart, Users,
@@ -87,9 +88,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between gap-4">
           <h1 className="font-semibold text-gray-900">Admin Dashboard</h1>
-          <Link href="/" className="text-sm text-primary-700 hover:underline">← View Store</Link>
+          <div className="flex items-center gap-2">
+            <AdminOrderNotifications />
+            <Link href="/" className="text-sm text-primary-700 hover:underline whitespace-nowrap">← View Store</Link>
+          </div>
         </header>
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>

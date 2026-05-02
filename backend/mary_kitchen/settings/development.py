@@ -9,8 +9,8 @@ MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]  # noqa: F405
 
 INTERNAL_IPS = ["127.0.0.1"]
 
-# Use console email in development (prints to terminal instead of sending)
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Defaults to console email in development, but allows real SMTP from backend/.env.
+EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")  # noqa: F405
 
 CORS_ALLOW_ALL_ORIGINS = True
 

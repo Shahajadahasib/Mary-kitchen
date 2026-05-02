@@ -1,8 +1,11 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import toast from "react-hot-toast";
 import api from "@/lib/api";
+import { useCartStore } from "@/store/cartStore";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 import { Package, MapPin, CreditCard, CheckCircle, Clock, Truck, Home } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -17,6 +20,18 @@ const STATUS_STEPS = [
 
 export default function OrderDetailPage() {
   const { orderNumber } = useParams();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !orderNumber) return;
+    const params = new URLSearchParams(window.location.search);
+    if (!params.get("payment_intent")) return;
+    const num = Array.isArray(orderNumber) ? orderNumber[0] : orderNumber;
+    queryClient.invalidateQueries({ queryKey: ["order", num] });
+    toast.success("Payment complete");
+    void useCartStore.getState().fetchCart();
+    window.history.replaceState({}, "", `/orders/${num}`);
+  }, [orderNumber, queryClient]);
 
   const { data: order, isLoading } = useQuery({
     queryKey: ["order", orderNumber],

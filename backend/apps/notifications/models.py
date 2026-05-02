@@ -7,6 +7,7 @@ class Notification(BaseModel):
     """In-app notification for a user."""
     TYPE_CHOICES = [
         ("order_update", "Order Update"),
+        ("admin_order", "Admin — New order"),
         ("payment", "Payment"),
         ("promotion", "Promotion"),
         ("system", "System"),
