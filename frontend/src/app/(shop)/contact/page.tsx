@@ -99,16 +99,16 @@ export default function ContactPage() {
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Your Name *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Your Name <span className="text-red-500">*</span></label>
                         <input required value={form.name} onChange={update("name")} className="input-field" placeholder="Jane Smith" />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-red-500">*</span></label>
                         <input required type="email" value={form.email} onChange={update("email")} className="input-field" placeholder="jane@example.com" />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Subject *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Subject <span className="text-red-500">*</span></label>
                       <select required value={form.subject} onChange={update("subject")} className="input-field">
                         <option value="">Select a topic</option>
                         <option value="order">Order Issue</option>
@@ -120,7 +120,7 @@ export default function ContactPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Message <span className="text-red-500">*</span></label>
                       <textarea required value={form.message} onChange={update("message")} rows={5} className="input-field resize-none" placeholder="Tell us how we can help..." />
                     </div>
                     <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2">

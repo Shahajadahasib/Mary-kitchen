@@ -252,7 +252,7 @@ export default function AdminCategoriesPage() {
                 <p className="text-xs text-gray-400 mt-1">Optional. Shown on the storefront category grid.</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500">*</span></label>
                 <input
                   required
                   value={form.name}
