@@ -73,17 +73,26 @@ class Order(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.order_number:
-            self.order_number = self._generate_order_number()
+            self.order_number = self._unique_order_number()
         super().save(*args, **kwargs)
 
     @staticmethod
     def _generate_order_number():
-        import random
+        import secrets
         import string
         from django.utils import timezone
-        prefix = timezone.now().strftime("%Y%m")
-        suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        return f"MK-{prefix}-{suffix}"
+        alphabet = string.ascii_uppercase + string.digits
+        suffix = "".join(secrets.choice(alphabet) for _ in range(8))
+        return f"MK-{timezone.now().strftime('%Y%m')}-{suffix}"
+
+    @classmethod
+    def _unique_order_number(cls):
+        from django.db import IntegrityError
+        for _ in range(10):
+            candidate = cls._generate_order_number()
+            if not cls.objects.filter(order_number=candidate).exists():
+                return candidate
+        raise IntegrityError("Could not generate a unique order number after 10 attempts.")
 
     def calculate_totals(self):
         subtotal = sum(item.line_total for item in self.items.all())
