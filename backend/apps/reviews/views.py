@@ -27,7 +27,7 @@ class CreateReviewView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        serializer.save(user=self.request.user, is_approved=True)
 
 
 class UpdateDeleteReviewView(generics.RetrieveUpdateDestroyAPIView):
