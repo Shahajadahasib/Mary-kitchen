@@ -11,6 +11,7 @@ class Order(BaseModel):
         ("confirmed", "Confirmed"),
         ("processing", "Processing"),
         ("out_for_delivery", "Out for Delivery"),
+        ("ready_for_pickup", "Ready for Pickup"),
         ("delivered", "Delivered"),
         ("cancelled", "Cancelled"),
         ("refunded", "Refunded"),

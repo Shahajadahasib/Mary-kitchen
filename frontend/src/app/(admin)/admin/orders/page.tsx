@@ -5,10 +5,12 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import api from "@/lib/api";
-import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
+import { formatCurrency, formatDate, getStatusColor, orderStatusLabel } from "@/lib/utils";
 import { Search, RefreshCw } from "lucide-react";
 
-const ORDER_STATUSES = ["pending", "confirmed", "processing", "out_for_delivery", "delivered", "cancelled"];
+const DELIVERY_STATUSES = ["pending", "confirmed", "processing", "out_for_delivery", "delivered", "cancelled"];
+const PICKUP_STATUSES   = ["pending", "confirmed", "processing", "ready_for_pickup", "delivered", "cancelled"];
+const ALL_STATUSES      = ["pending", "confirmed", "processing", "ready_for_pickup", "out_for_delivery", "delivered", "cancelled"];
 
 function AdminOrdersPageInner() {
   const searchParams = useSearchParams();
@@ -69,8 +71,8 @@ function AdminOrdersPageInner() {
       setSelectedOrder(null);
       setNewStatus("");
       setNote("");
-    } catch {
-      toast.error("Failed to update status");
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || "Failed to update status");
     } finally {
       setUpdating(false);
     }
@@ -97,9 +99,9 @@ function AdminOrdersPageInner() {
             className="input-field text-sm w-auto"
           >
             <option value="">All Statuses</option>
-            {ORDER_STATUSES.map((s) => (
+            {ALL_STATUSES.map((s) => (
               <option key={s} value={s}>
-                {s.replace(/_/g, " ")}
+                {orderStatusLabel(s)}
               </option>
             ))}
           </select>
@@ -141,10 +143,10 @@ function AdminOrdersPageInner() {
                     <td className="px-4 py-3 text-gray-600">{order.items?.length}</td>
                     <td className="px-4 py-3 font-semibold">{formatCurrency(order.total_amount)}</td>
                     <td className="px-4 py-3">
-                      <span className={`badge ${getStatusColor(order.payment_status)}`}>{order.payment_status}</span>
+                      <span className={`badge ${getStatusColor(order.payment_status)}`}>{orderStatusLabel(order.payment_status)}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`badge ${getStatusColor(order.status)}`}>{order.status.replace(/_/g, " ")}</span>
+                      <span className={`badge ${getStatusColor(order.status)}`}>{orderStatusLabel(order.status, order.order_type)}</span>
                     </td>
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatDate(order.created_at)}</td>
                     <td className="px-4 py-3">
@@ -170,14 +172,17 @@ function AdminOrdersPageInner() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
             <h3 className="font-bold text-lg mb-1">Update Order Status</h3>
-            <p className="text-sm text-gray-500 mb-4">Order #{selectedOrder.order_number}</p>
+            <p className="text-sm text-gray-500 mb-4">
+              Order #{selectedOrder.order_number} &middot;{" "}
+              <span className="capitalize">{selectedOrder.order_type}</span>
+            </p>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">New Status</label>
                 <select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} className="input-field">
-                  {ORDER_STATUSES.map((s) => (
+                  {(selectedOrder.order_type === "pickup" ? PICKUP_STATUSES : DELIVERY_STATUSES).map((s) => (
                     <option key={s} value={s}>
-                      {s.replace(/_/g, " ")}
+                      {orderStatusLabel(s, selectedOrder.order_type)}
                     </option>
                   ))}
                 </select>

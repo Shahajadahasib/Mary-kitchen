@@ -116,6 +116,7 @@ class CancelOrderView(APIView):
 
         reason = request.data.get("reason", "")
         order.cancellation_reason = reason
+        order.save(update_fields=["cancellation_reason"])
         order = update_order_status(order, "cancelled", request.user, note=f"Cancelled by customer. {reason}")
         return Response({"success": True, "message": "Order cancelled.", "data": OrderSerializer(order).data})
 
@@ -289,12 +290,15 @@ class AdminOrderStatusUpdateView(APIView):
 
         serializer = AdminOrderStatusUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        order = update_order_status(
-            order,
-            new_status=serializer.validated_data["status"],
-            changed_by=request.user,
-            note=serializer.validated_data.get("note", ""),
-        )
+        try:
+            order = update_order_status(
+                order,
+                new_status=serializer.validated_data["status"],
+                changed_by=request.user,
+                note=serializer.validated_data.get("note", ""),
+            )
+        except ValueError as e:
+            return Response({"success": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         try:
             data = AdminOrderSerializer(order).data
         except Exception:

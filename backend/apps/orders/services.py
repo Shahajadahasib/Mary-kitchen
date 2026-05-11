@@ -184,8 +184,21 @@ def create_order_from_cart(user, order_type: str, address_id=None, notes: str = 
     return order
 
 
+VALID_STATUSES_BY_TYPE = {
+    "delivery": ["pending", "confirmed", "processing", "out_for_delivery", "delivered", "cancelled", "refunded"],
+    "pickup":   ["pending", "confirmed", "processing", "ready_for_pickup", "delivered", "cancelled", "refunded"],
+}
+
+
 def update_order_status(order: Order, new_status: str, changed_by, note: str = "") -> Order:
     """Update order status and record history."""
+    allowed = VALID_STATUSES_BY_TYPE.get(order.order_type, VALID_STATUSES_BY_TYPE["delivery"])
+    if new_status not in allowed:
+        raise ValueError(
+            f"Status '{new_status}' is not valid for {order.order_type} orders. "
+            f"Allowed: {', '.join(allowed)}"
+        )
+
     old_status = order.status
     order.status = new_status
 
@@ -213,8 +226,8 @@ def update_order_status(order: Order, new_status: str, changed_by, note: str = "
     try:
         Notification.objects.create(
             user=order.user,
-            title=order_status_notification_title(new_status),
-            message=order_status_notification_message(order.order_number, new_status),
+            title=order_status_notification_title(new_status, order.order_type),
+            message=order_status_notification_message(order.order_number, new_status, order.order_type),
             notification_type="order_update",
             action_url=f"/orders/{order.order_number}",
             metadata={"order_number": order.order_number, "status": new_status},

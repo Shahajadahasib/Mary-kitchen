@@ -244,6 +244,7 @@ def handle_payment_success(payment_intent_id: str) -> Payment | None:
 
     order = payment.order
     if order.payment_status != "paid":
+        old_status = order.status
         order.payment_status = "paid"
         order.status = "confirmed"
         order.save(update_fields=["payment_status", "status"])
@@ -252,7 +253,7 @@ def handle_payment_success(payment_intent_id: str) -> Payment | None:
 
         OrderStatusHistory.objects.create(
             order=order,
-            from_status="pending",
+            from_status=old_status,
             to_status="confirmed",
             note="Payment received via Stripe",
         )

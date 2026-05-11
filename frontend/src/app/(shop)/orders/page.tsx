@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import api from "@/lib/api";
-import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
+import { formatCurrency, formatDate, getStatusColor, orderStatusLabel } from "@/lib/utils";
 import { Package } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 
@@ -40,7 +40,7 @@ export default function OrdersPage() {
                 <p className="text-sm text-gray-500">{formatDate(order.created_at)}</p>
               </div>
               <div className="text-right">
-                <span className={`badge ${getStatusColor(order.status)}`}>{order.status.replace("_", " ")}</span>
+                <span className={`badge ${getStatusColor(order.status)}`}>{orderStatusLabel(order.status, order.order_type)}</span>
                 <p className="font-bold text-primary-700 mt-1">{formatCurrency(order.total_amount)}</p>
               </div>
             </div>
@@ -49,7 +49,7 @@ export default function OrdersPage() {
               <span>•</span>
               <span className="capitalize">{order.order_type}</span>
               <span>•</span>
-              <span className={`badge ${getStatusColor(order.payment_status)}`}>{order.payment_status}</span>
+              <span className={`badge ${getStatusColor(order.payment_status)}`}>{orderStatusLabel(order.payment_status)}</span>
             </div>
           </Link>
         ))}

@@ -98,7 +98,7 @@ def send_order_status_update_email(order_id: str, new_status: str):
 
         order = Order.objects.select_related("user").get(id=order_id)
         user = order.user
-        msg = order_status_body_fragment(new_status)
+        msg = order_status_body_fragment(new_status, order.order_type)
 
         send_mail(
             subject=f"Mary Kitchen – Order #{order.order_number} Update",
