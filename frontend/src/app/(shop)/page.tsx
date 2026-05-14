@@ -4,6 +4,7 @@ import api from "@/lib/api";
 import ProductCard from "@/components/product/ProductCard";
 import CategoryCard from "@/components/product/CategoryCard";
 import HeroBanner from "@/components/layout/HeroBanner";
+import { HeroBanners, PromoBanners } from "@/components/layout/PromoBanners";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Link from "next/link";
 
@@ -29,6 +30,7 @@ export default function HomePage() {
   return (
     <div>
       <HeroBanner />
+      <HeroBanners />
 
       {/* Categories */}
       <section className="container-xl py-10">
@@ -53,6 +55,8 @@ export default function HomePage() {
         )}
       </section>
 
+      <PromoBanners location="top" />
+
       {/* Featured Products — only shown when there are featured products */}
       {hasFeatured && (
         <section className="bg-white py-10">
@@ -71,6 +75,8 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      <PromoBanners location="middle" />
 
       {/* All Products */}
       <section className="container-xl py-10">
@@ -99,6 +105,8 @@ export default function HomePage() {
           </div>
         )}
       </section>
+
+      <PromoBanners location="bottom" />
 
       {/* Value Props */}
       <section className="bg-primary-700 text-white py-12">
