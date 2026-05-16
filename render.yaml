@@ -1,9 +1,10 @@
 # Render Blueprint — https://render.com/docs/blueprint-spec
-# Free tier: web service spins down after 15 min inactivity (cold start ~30s)
+# Free tier: services spin down after 15 min inactivity (cold start ~30s)
 # Database: use Neon free tier → https://neon.tech (set DATABASE_URL)
 # Redis:    use Upstash free tier → https://upstash.com (set REDIS_URL)
 
 services:
+  # ─── Django Backend ───────────────────────────────────────────────────────
   - type: web
     name: mary-kitchen-backend
     runtime: python
@@ -21,8 +22,6 @@ services:
         value: 3.12.0
       - key: DEBUG
         value: "False"
-
-      # Set the following in the Render dashboard → Environment
       - key: SECRET_KEY
         sync: false
       - key: ALLOWED_HOSTS
@@ -65,3 +64,24 @@ services:
         value: "130.8456"
       - key: DEFAULT_DELIVERY_RADIUS_KM
         value: "25"
+
+  # ─── Next.js Frontend ─────────────────────────────────────────────────────
+  - type: web
+    name: mary-kitchen-frontend
+    runtime: node
+    region: singapore
+    plan: free
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    startCommand: npm start -- -p $PORT
+    healthCheckPath: /
+    autoDeploy: false
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+        sync: false
