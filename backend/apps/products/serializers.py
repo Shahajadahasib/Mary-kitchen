@@ -3,6 +3,7 @@ from django.utils.text import slugify
 
 from rest_framework import serializers
 
+from core.validators import validate_image_file
 from .models import AttributeDefinition, Category, Product, ProductImage, ProductVariant
 
 
@@ -72,6 +73,9 @@ class CategorySerializer(serializers.ModelSerializer):
         if request:
             return request.build_absolute_uri(url)
         return url
+
+    def validate_image(self, value):
+        return validate_image_file(value)
 
     def validate_name(self, value):
         name = (value or "").strip()
@@ -235,12 +239,13 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            "name", "description", "category",
+            "id", "name", "description", "category",
             "base_price", "compare_price",
             "stock_quantity", "allow_out_of_stock_orders",
             "is_active", "is_featured",
             "weight", "unit", "attributes", "sku", "tags",
         ]
+        read_only_fields = ["id"]
 
     def validate_sku(self, value):
         qs = Product.objects.filter(sku=value)

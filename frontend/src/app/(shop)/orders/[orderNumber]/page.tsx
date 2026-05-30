@@ -1,26 +1,35 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import api from "@/lib/api";
 import { useCartStore } from "@/store/cartStore";
-import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
-import { Package, MapPin, CreditCard, CheckCircle, Clock, Truck, Home } from "lucide-react";
+import { formatCurrency, formatDate, getStatusColor, orderStatusLabel } from "@/lib/utils";
+import { Package, MapPin, CreditCard, CheckCircle, Clock, Truck, Home, ShoppingBag, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 
-const STATUS_STEPS = [
-  { key: "pending", label: "Pending", icon: Clock },
-  { key: "confirmed", label: "Confirmed", icon: CheckCircle },
-  { key: "processing", label: "Processing", icon: Package },
+const DELIVERY_STEPS = [
+  { key: "pending",          label: "Pending",          icon: Clock },
+  { key: "confirmed",        label: "Confirmed",        icon: CheckCircle },
+  { key: "processing",       label: "Processing",       icon: Package },
   { key: "out_for_delivery", label: "Out for Delivery", icon: Truck },
-  { key: "delivered", label: "Delivered", icon: Home },
+  { key: "delivered",        label: "Delivered",        icon: Home },
+];
+
+const PICKUP_STEPS = [
+  { key: "pending",          label: "Pending",          icon: Clock },
+  { key: "confirmed",        label: "Confirmed",        icon: CheckCircle },
+  { key: "processing",       label: "Processing",       icon: Package },
+  { key: "ready_for_pickup", label: "Ready for Pickup", icon: ShoppingBag },
+  { key: "delivered",        label: "Picked Up",        icon: Home },
 ];
 
 export default function OrderDetailPage() {
   const { orderNumber } = useParams();
   const queryClient = useQueryClient();
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || !orderNumber) return;
@@ -49,8 +58,22 @@ export default function OrderDetailPage() {
 
   if (!order) return <div className="container-xl py-20 text-center text-gray-400">Order not found</div>;
 
-  const currentStepIdx = STATUS_STEPS.findIndex((s) => s.key === order.status);
+  const isPickup = order.order_type === "pickup";
+  const steps = isPickup ? PICKUP_STEPS : DELIVERY_STEPS;
+  const currentStepIdx = steps.findIndex((s) => s.key === order.status);
   const isCancelled = order.status === "cancelled";
+  const canPay = ["unpaid", "failed"].includes(order.payment_status) && !isCancelled;
+
+  const handleRetryPayment = async () => {
+    setRetrying(true);
+    try {
+      const res = await api.post("/payments/create-intent/", { order_number: order.order_number });
+      window.location.href = res.data.data.checkout_url;
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || "Failed to start payment. Please try again.");
+      setRetrying(false);
+    }
+  };
 
   return (
     <div className="container-xl py-8">
@@ -62,7 +85,7 @@ export default function OrderDetailPage() {
         </div>
         <div className="text-right">
           <span className={`badge text-sm px-3 py-1 ${getStatusColor(order.status)}`}>
-            {order.status.replace(/_/g, " ")}
+            {orderStatusLabel(order.status, order.order_type)}
           </span>
           <p className="text-xl font-bold text-primary-700 mt-1">{formatCurrency(order.total_amount)}</p>
         </div>
@@ -71,15 +94,20 @@ export default function OrderDetailPage() {
       {/* Tracking */}
       {!isCancelled && (
         <div className="card p-6 mb-6">
-          <h2 className="font-semibold text-gray-900 mb-5">Order Tracking</h2>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-semibold text-gray-900">Order Tracking</h2>
+            <span className="text-xs text-gray-400 capitalize bg-gray-100 px-2 py-1 rounded-full">
+              {isPickup ? "Pickup" : "Delivery"}
+            </span>
+          </div>
           <div className="relative flex justify-between">
             <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 z-0">
               <div
                 className="h-full bg-primary-600 transition-all duration-500"
-                style={{ width: `${currentStepIdx >= 0 ? (currentStepIdx / (STATUS_STEPS.length - 1)) * 100 : 0}%` }}
+                style={{ width: `${currentStepIdx >= 0 ? (currentStepIdx / (steps.length - 1)) * 100 : 0}%` }}
               />
             </div>
-            {STATUS_STEPS.map((step, i) => {
+            {steps.map((step, i) => {
               const Icon = step.icon;
               const done = i <= currentStepIdx;
               return (
@@ -142,11 +170,35 @@ export default function OrderDetailPage() {
             <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-primary-600" /> Payment
             </h2>
-            <span className={`badge ${getStatusColor(order.payment_status)}`}>{order.payment_status}</span>
+            <span className={`badge ${getStatusColor(order.payment_status)}`}>{orderStatusLabel(order.payment_status)}</span>
+            {canPay && (
+              <div className="mt-3">
+                {order.payment_status === "failed" && (
+                  <p className="text-xs text-red-600 mb-2">Your payment failed. Please try again.</p>
+                )}
+                <button
+                  onClick={handleRetryPayment}
+                  disabled={retrying}
+                  className="btn-primary w-full text-sm flex items-center justify-center gap-2"
+                >
+                  {retrying ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                  {retrying ? "Redirecting…" : order.payment_status === "failed" ? "Retry Payment" : "Pay Now"}
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Delivery Address */}
-          {order.delivery_address && (
+          {/* Delivery Address or Pickup notice */}
+          {isPickup ? (
+            <div className="card p-5">
+              <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4 text-primary-600" /> Pickup
+              </h2>
+              <p className="text-sm text-gray-600">
+                Your order will be ready for collection at our store. We&apos;ll notify you when it&apos;s ready.
+              </p>
+            </div>
+          ) : order.delivery_address && (
             <div className="card p-5">
               <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-primary-600" /> Delivery Address

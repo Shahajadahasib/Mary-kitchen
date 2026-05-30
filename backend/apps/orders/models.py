@@ -11,6 +11,7 @@ class Order(BaseModel):
         ("confirmed", "Confirmed"),
         ("processing", "Processing"),
         ("out_for_delivery", "Out for Delivery"),
+        ("ready_for_pickup", "Ready for Pickup"),
         ("delivered", "Delivered"),
         ("cancelled", "Cancelled"),
         ("refunded", "Refunded"),
@@ -48,8 +49,11 @@ class Order(BaseModel):
     stripe_checkout_session_id = models.CharField(max_length=255, blank=True, default="", db_index=True)
     session_id = models.CharField(max_length=255, null=True, blank=True)
 
+    refunded_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+
     has_out_of_stock_items = models.BooleanField(default=False)
     admin_notified_out_of_stock = models.BooleanField(default=False)
+    confirmation_email_sent = models.BooleanField(default=False)
 
     notes = models.TextField(blank=True, help_text="Customer notes")
     admin_notes = models.TextField(blank=True, help_text="Internal admin notes")
@@ -72,17 +76,26 @@ class Order(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.order_number:
-            self.order_number = self._generate_order_number()
+            self.order_number = self._unique_order_number()
         super().save(*args, **kwargs)
 
     @staticmethod
     def _generate_order_number():
-        import random
+        import secrets
         import string
         from django.utils import timezone
-        prefix = timezone.now().strftime("%Y%m")
-        suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        return f"MK-{prefix}-{suffix}"
+        alphabet = string.ascii_uppercase + string.digits
+        suffix = "".join(secrets.choice(alphabet) for _ in range(8))
+        return f"MK-{timezone.now().strftime('%Y%m')}-{suffix}"
+
+    @classmethod
+    def _unique_order_number(cls):
+        from django.db import IntegrityError
+        for _ in range(10):
+            candidate = cls._generate_order_number()
+            if not cls.objects.filter(order_number=candidate).exists():
+                return candidate
+        raise IntegrityError("Could not generate a unique order number after 10 attempts.")
 
     def calculate_totals(self):
         subtotal = sum(item.line_total for item in self.items.all())
@@ -102,6 +115,7 @@ class OrderItem(BaseModel):
     variant_name = models.CharField(max_length=200, blank=True)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField()
+    refunded_quantity = models.PositiveIntegerField(default=0)
     was_out_of_stock = models.BooleanField(default=False)
 
     class Meta:

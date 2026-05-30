@@ -32,6 +32,7 @@ THIRD_PARTY_APPS = [
     "axes",
     "django_filters",
     "drf_spectacular",
+    "anymail",
 ]
 
 LOCAL_APPS = [
@@ -44,6 +45,8 @@ LOCAL_APPS = [
     "apps.notifications",
     "apps.delivery",
     "apps.analytics",
+    "apps.banners",
+    "apps.store",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -105,6 +108,14 @@ DATABASES = {
         "CONN_MAX_AGE": 60,
     }
 }
+
+# DATABASE_URL overrides individual DB_* vars (used by Render, Neon, Railway, etc.)
+_database_url = config("DATABASE_URL", default="")
+if _database_url:
+    import dj_database_url
+    DATABASES["default"] = dj_database_url.parse(
+        _database_url, conn_max_age=60, conn_health_checks=True
+    )
 
 # ─── Custom User Model ────────────────────────────────────────────────────────
 AUTH_USER_MODEL = "users.User"
@@ -250,6 +261,10 @@ EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="Mary Kitchen <noreply@marykitchen.com.au>")
 
+ANYMAIL = {
+    "RESEND_API_KEY": config("RESEND_API_KEY", default=""),
+}
+
 # ─── Stripe ───────────────────────────────────────────────────────────────────
 STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="")
 STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
@@ -271,3 +286,5 @@ DEFAULT_DELIVERY_RADIUS_KM = config("DEFAULT_DELIVERY_RADIUS_KM", default=25, ca
 # ─── OTP ─────────────────────────────────────────────────────────────────────
 OTP_EXPIRY_MINUTES = 10
 OTP_LENGTH = 6
+# Separate HMAC signing key for OTP hashes; falls back to SECRET_KEY if unset.
+OTP_SECRET_KEY = config("OTP_SECRET_KEY", default="")

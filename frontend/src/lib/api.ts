@@ -12,11 +12,14 @@ const api: AxiosInstance = axios.create({
   withCredentials: false,
 });
 
-// Attach access token to every request
+// Attach access token to every request; let FormData set its own Content-Type
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = Cookies.get("access_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  if (config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
   }
   return config;
 });
@@ -65,7 +68,8 @@ api.interceptors.response.use(
           refresh: refreshToken,
         });
         const newAccess = data.access;
-        Cookies.set("access_token", newAccess, { expires: 1 });
+        const secure = process.env.NODE_ENV === "production";
+        Cookies.set("access_token", newAccess, { expires: 1, secure, sameSite: "lax" });
         processQueue(null, newAccess);
         originalRequest.headers = { ...originalRequest.headers, Authorization: `Bearer ${newAccess}` };
         return api(originalRequest);

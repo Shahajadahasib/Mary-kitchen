@@ -139,11 +139,12 @@ export default function NewProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.base_price || !form.category) {
+    if (!form.name || !form.base_price || !form.category || !form.sku) {
       const errors = {
         ...(!form.name ? { name: "Product name is required" } : {}),
         ...(!form.base_price ? { base_price: "Price is required" } : {}),
         ...(!form.category ? { category: "Category is required" } : {}),
+        ...(!form.sku ? { sku: "SKU is required" } : {}),
       };
       setFieldErrors(errors);
       scrollToFirstError(errors);
@@ -160,7 +161,7 @@ export default function NewProductPage() {
         base_price: parseFloat(form.base_price),
         compare_price: form.compare_price ? parseFloat(form.compare_price) : null,
         stock_quantity: parseInt(form.stock_quantity),
-        sku: form.sku || null,
+        sku: form.sku,
         weight: form.weight ? parseFloat(form.weight) : null,
         unit: form.unit,
         is_active: form.is_active,
@@ -269,7 +270,7 @@ export default function NewProductPage() {
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
           <h3 className="font-semibold text-gray-800">Basic Information</h3>
           <div data-field="name">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Product Name <span className="text-red-500">*</span></label>
             <input required value={form.name} onChange={update("name")} className={inputClass("name")} placeholder="e.g. Fresh Mango" />
             <FieldError field="name" />
           </div>
@@ -280,7 +281,7 @@ export default function NewProductPage() {
           </div>
           <div data-field="category">
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700">Category *</label>
+              <label className="block text-sm font-medium text-gray-700">Category <span className="text-red-500">*</span></label>
               <button
                 type="button"
                 onClick={() => setShowCatModal(true)}
@@ -307,7 +308,7 @@ export default function NewProductPage() {
           <h3 className="font-semibold text-gray-800">Pricing</h3>
           <div className="grid grid-cols-2 gap-4">
             <div data-field="base_price">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Price (AUD) *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Price (AUD) <span className="text-red-500">*</span></label>
               <input required type="number" step="0.01" min="0" value={form.base_price} onChange={update("base_price")} className={inputClass("base_price")} placeholder="0.00" />
               <FieldError field="base_price" />
             </div>
@@ -324,8 +325,8 @@ export default function NewProductPage() {
           <h3 className="font-semibold text-gray-800">Inventory</h3>
           <div className="grid grid-cols-2 gap-4">
             <div data-field="sku">
-              <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
-              <input value={form.sku} onChange={update("sku")} className={inputClass("sku")} placeholder="e.g. MNG-001" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">SKU <span className="text-red-500">*</span></label>
+              <input required value={form.sku} onChange={update("sku")} className={inputClass("sku")} placeholder="e.g. MNG-001" />
               <FieldError field="sku" />
             </div>
             <div data-field="stock_quantity">
@@ -398,7 +399,7 @@ export default function NewProductPage() {
             </div>
             <form onSubmit={handleCreateCategory} className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category Name <span className="text-red-500">*</span></label>
                 <input
                   required
                   autoFocus

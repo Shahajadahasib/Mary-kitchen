@@ -233,7 +233,7 @@ export default function AddressFormModal({ open, onClose, onSaved, initial }: Pr
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Full Name *</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
               <input
                 value={form.full_name}
                 onChange={(e) => set("full_name", e.target.value)}
@@ -262,7 +262,7 @@ export default function AddressFormModal({ open, onClose, onSaved, initial }: Pr
           {/* ── Street address (auto-filled, editable) ── */}
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              Street Address *
+              Street Address <span className="text-red-500">*</span>
               <span className="ml-1 text-gray-400 font-normal text-[10px]">auto-filled from search above</span>
             </label>
             <input
@@ -288,7 +288,7 @@ export default function AddressFormModal({ open, onClose, onSaved, initial }: Pr
           {/* ── State + Suburb ── */}
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-1">
-              <label className="block text-xs font-medium text-gray-700 mb-1">State *</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">State <span className="text-red-500">*</span></label>
               <select
                 value={form.state}
                 onChange={(e) => set("state", e.target.value)}
@@ -299,7 +299,7 @@ export default function AddressFormModal({ open, onClose, onSaved, initial }: Pr
               {errors.state && <p className="text-xs text-red-500 mt-0.5">{errors.state}</p>}
             </div>
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Suburb *</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Suburb <span className="text-red-500">*</span></label>
               <input
                 value={form.suburb}
                 onChange={(e) => set("suburb", e.target.value)}
@@ -313,7 +313,7 @@ export default function AddressFormModal({ open, onClose, onSaved, initial }: Pr
           {/* ── Postcode + Country ── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Postcode *</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Postcode <span className="text-red-500">*</span></label>
               <input
                 value={form.postcode}
                 onChange={(e) => set("postcode", e.target.value)}
@@ -324,7 +324,7 @@ export default function AddressFormModal({ open, onClose, onSaved, initial }: Pr
               {errors.postcode && <p className="text-xs text-red-500 mt-0.5">{errors.postcode}</p>}
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Country *</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Country <span className="text-red-500">*</span></label>
               <input
                 value={form.country}
                 onChange={(e) => set("country", e.target.value)}

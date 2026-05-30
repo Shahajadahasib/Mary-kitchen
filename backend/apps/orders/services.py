@@ -184,8 +184,56 @@ def create_order_from_cart(user, order_type: str, address_id=None, notes: str = 
     return order
 
 
-def update_order_status(order: Order, new_status: str, changed_by, note: str = "") -> Order:
-    """Update order status and record history."""
+TERMINAL_STATUSES = {"refunded", "cancelled"}
+
+# Valid forward transitions per order type.
+# "cancelled" is always reachable from any non-terminal status.
+VALID_TRANSITIONS: dict[str, dict[str, list[str]]] = {
+    "delivery": {
+        "pending":          ["confirmed", "cancelled"],
+        "confirmed":        ["processing", "cancelled"],
+        "processing":       ["out_for_delivery", "cancelled"],
+        "out_for_delivery": ["delivered", "cancelled"],
+        "delivered":        [],
+    },
+    "pickup": {
+        "pending":          ["confirmed", "cancelled"],
+        "confirmed":        ["processing", "cancelled"],
+        "processing":       ["ready_for_pickup", "cancelled"],
+        "ready_for_pickup": ["delivered", "cancelled"],
+        "delivered":        [],
+    },
+}
+
+
+def allowed_next_statuses(order: Order) -> list[str]:
+    """Return the statuses an order can legally move to from its current state."""
+    if order.status in TERMINAL_STATUSES:
+        return []
+    transitions = VALID_TRANSITIONS.get(order.order_type, VALID_TRANSITIONS["delivery"])
+    return transitions.get(order.status, [])
+
+
+def update_order_status(order: Order, new_status: str, changed_by, note: str = "", force: bool = False) -> Order:
+    """Update order status and record history.
+
+    Set force=True to bypass the normal transition graph (admin override).
+    Terminal statuses (refunded/cancelled) are always blocked regardless of force.
+    """
+    if order.status in TERMINAL_STATUSES:
+        raise ValueError(
+            f"Order is already '{order.status}' and cannot be updated further."
+        )
+    if not force:
+        allowed = allowed_next_statuses(order)
+        if new_status not in allowed:
+            raise ValueError(
+                f"Cannot move order from '{order.status}' to '{new_status}'. "
+                f"Allowed next statuses: {', '.join(allowed) or 'none'}."
+            )
+    elif new_status == "refunded":
+        raise ValueError("Status 'refunded' can only be set by the payment system.")
+
     old_status = order.status
     order.status = new_status
 
@@ -194,15 +242,15 @@ def update_order_status(order: Order, new_status: str, changed_by, note: str = "
     elif new_status == "cancelled":
         order.cancelled_at = timezone.now()
 
-    order.save(update_fields=["status", "delivered_at", "cancelled_at"])
-
-    OrderStatusHistory.objects.create(
-        order=order,
-        from_status=old_status,
-        to_status=new_status,
-        changed_by=changed_by,
-        note=note,
-    )
+    with transaction.atomic():
+        order.save(update_fields=["status", "delivered_at", "cancelled_at"])
+        OrderStatusHistory.objects.create(
+            order=order,
+            from_status=old_status,
+            to_status=new_status,
+            changed_by=changed_by,
+            note=note,
+        )
 
     from apps.notifications.models import Notification
     from apps.notifications.order_status_copy import (
@@ -213,8 +261,8 @@ def update_order_status(order: Order, new_status: str, changed_by, note: str = "
     try:
         Notification.objects.create(
             user=order.user,
-            title=order_status_notification_title(new_status),
-            message=order_status_notification_message(order.order_number, new_status),
+            title=order_status_notification_title(new_status, order.order_type),
+            message=order_status_notification_message(order.order_number, new_status, order.order_type),
             notification_type="order_update",
             action_url=f"/orders/{order.order_number}",
             metadata={"order_number": order.order_number, "status": new_status},
@@ -228,7 +276,10 @@ def update_order_status(order: Order, new_status: str, changed_by, note: str = "
     try:
         from apps.notifications.tasks import send_order_status_update_email
 
-        send_order_status_update_email.delay(str(order.id), new_status)
+        order_id_str = str(order.id)
+        transaction.on_commit(
+            lambda: send_order_status_update_email.delay(order_id_str, new_status)
+        )
     except Exception:
         logger.exception(
             "update_order_status: failed to queue status email for order %s",
