@@ -4,9 +4,9 @@ import Link from "next/link";
 export const metadata = { title: "Delivery Info | Mary Kitchen" };
 
 const zones = [
-  { name: "Darwin CBD & Surrounds", radius: "0–10 km", fee: "$5.00", time: "Same day / 2–4 hrs" },
-  { name: "Palmerston & Suburbs", radius: "10–18 km", fee: "$8.00", time: "Same day / 3–5 hrs" },
-  { name: "Outer Darwin Area", radius: "18–25 km", fee: "$12.00", time: "Next day" },
+  { name: "Darwin CBD & Surrounds", radius: "0–10 km", fee: "$30.00", time: "Same day / 4–8 hrs" },
+  { name: "Palmerston & Suburbs", radius: "10–18 km", fee: "$40.00", time: "Same day / 8–12 hrs" },
+  { name: "Outer Darwin Area", radius: "18–25 km", fee: "$50.00", time: "Next day" },
 ];
 
 export default function DeliveryPage() {
@@ -67,9 +67,8 @@ export default function DeliveryPage() {
               {[
                 "Order online and we deliver to your door",
                 "Real-time order tracking",
-                "Minimum order value: $30",
+                "Minimum order value: $80",
                 "Delivery fee based on zone (see table above)",
-                "Free delivery on orders over $100",
                 "Available 7 days a week",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2">
@@ -93,7 +92,7 @@ export default function DeliveryPage() {
                 "Pick up from: 8/63 Winnellie Rd, Winnellie NT",
                 "No minimum order for pickup",
                 "Great for large or heavy orders",
-                "Open Mon–Sun 9:00 AM – 6:00 PM",
+                "Open Mon–Sun 9:00 AM – 5:00 PM",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
