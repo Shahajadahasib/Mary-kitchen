@@ -6,4 +6,4 @@ class ProductsConfig(AppConfig):
     name = "apps.products"
 
     def ready(self):
-        import apps.products.signals  # noqa
+        import apps.products.signals

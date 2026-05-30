@@ -7,6 +7,7 @@ from .views import (
     AdminAttributeDefinitionViewSet,
     AdminCategoryViewSet,
     AdminLowStockProductsView,
+    AdminProductImageViewSet,
     AdminProductViewSet,
     AdminVariantViewSet,
     CategoryDetailView,
@@ -24,6 +25,7 @@ router.register("admin/categories", AdminCategoryViewSet, basename="admin-catego
 # Nested routes: /admin/products/<product_pk>/variants/
 product_router = nested_routers.NestedDefaultRouter(router, "admin/products", lookup="product")
 product_router.register("variants", AdminVariantViewSet, basename="product-variant")
+product_router.register("images", AdminProductImageViewSet, basename="product-images")
 
 # Nested: /admin/categories/<category_pk>/attributes/
 category_router = nested_routers.NestedDefaultRouter(router, "admin/categories", lookup="category")

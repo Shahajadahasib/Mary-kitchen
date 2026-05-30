@@ -24,6 +24,7 @@ from .serializers import (
     ProductCreateUpdateSerializer,
     ProductDetailSerializer,
     ProductListSerializer,
+    ProductImageSerializer,
     ProductVariantSerializer,
 )
 
@@ -183,6 +184,25 @@ class AdminProductViewSet(ModelViewSet):
                 {"detail": "This product cannot be deleted because it has existing orders. Deactivate it instead."},
                 status=status.HTTP_409_CONFLICT,
             )
+
+class AdminProductImageViewSet(ModelViewSet):
+    """Admin CRUD for product images."""
+    serializer_class = ProductImageSerializer
+    permission_classes = ADMIN_API_PERMISSION_CLASSES
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    http_method_names = ["get", "post", "delete", "patch"]
+
+    def get_queryset(self):
+        return ProductImage.objects.filter(product_id=self.kwargs["product_pk"])
+
+    def perform_create(self, serializer):
+        product = Product.objects.get(pk=self.kwargs["product_pk"])
+        serializer.save(product=product)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()  # triggers post_delete signal to remove file
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class AdminLowStockProductsView(APIView):
