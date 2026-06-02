@@ -1,13 +1,13 @@
 "use client";
+import api from "@/lib/api";
+import { formatCurrency } from "@/lib/utils";
+import { useAuthStore } from "@/store/authStore";
+import { useCartStore } from "@/store/cartStore";
+import { Heart, Minus, Plus, ShoppingCart, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import toast from "react-hot-toast";
-import { ShoppingCart, Star, Heart, Plus, Minus } from "lucide-react";
-import { useCartStore } from "@/store/cartStore";
-import { useAuthStore } from "@/store/authStore";
-import { formatCurrency } from "@/lib/utils";
-import api from "@/lib/api";
 import { useState } from "react";
+import toast from "react-hot-toast";
 
 interface ProductCardProps {
   product: {
@@ -111,7 +111,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             alt={product.name}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-            className="object-contain group-hover:scale-105 transition-transform duration-300"
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-5xl text-gray-300">🛒</div>
