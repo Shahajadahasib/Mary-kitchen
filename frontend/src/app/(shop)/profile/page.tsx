@@ -38,7 +38,7 @@ export default function ProfilePage() {
             setProfileForm({
                 first_name: user.first_name,
                 last_name: user.last_name,
-                phone_number: user.phone_number || "",
+                phone_number: user.phone_number,
             });
     }, [user]);
 
@@ -241,9 +241,7 @@ export default function ProfilePage() {
                                                 </div>
                                                 <p className="text-sm text-gray-700">
                                                     {addr.full_name}
-                                                    {addr.phone
-                                                        ? ` · ${addr.phone}`
-                                                        : ""}
+                                                    {addr.phone}
                                                 </p>
                                                 <p className="text-sm text-gray-500">
                                                     {addr.address_line1}
