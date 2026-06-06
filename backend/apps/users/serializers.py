@@ -59,6 +59,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "email", "is_email_verified", "is_phone_verified", "is_staff", "date_joined"]
 
+    def validate_phone_number(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Phone number is required.")
+        cleaned = value.strip().replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+        if len(cleaned) < 8:
+            raise serializers.ValidationError("Please enter a valid phone number.")
+        return value.strip()
+
     def validate_avatar(self, value):
         return validate_image_file(value)
 

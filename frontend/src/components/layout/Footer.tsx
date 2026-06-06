@@ -2,17 +2,9 @@
 
 import { useStoreProfile } from "@/hooks/useStoreProfile";
 import { useAuthStore } from "@/store/authStore";
-import {
-    Facebook,
-    Globe,
-    Instagram,
-    Mail,
-    MapPin,
-    Phone,
-    Shield,
-    ShoppingBag,
-} from "lucide-react";
+import { Mail, MapPin, Phone, Shield, ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { FaFacebook, FaGlobe, FaInstagram } from "react-icons/fa6";
 
 const SHOP_LINKS = [
     { label: "All Products", href: "/products" },
@@ -140,7 +132,7 @@ export default function Footer() {
                                         aria-label="Facebook"
                                         className="text-gray-500 hover:text-white transition-colors"
                                     >
-                                        <Facebook className="w-5 h-5" />
+                                        <FaFacebook className="w-5 h-5" />
                                     </a>
                                 )}
                                 {instagramHref && (
@@ -151,7 +143,7 @@ export default function Footer() {
                                         aria-label="Instagram"
                                         className="text-gray-500 hover:text-white transition-colors"
                                     >
-                                        <Instagram className="w-5 h-5" />
+                                        <FaInstagram className="w-5 h-5" />
                                     </a>
                                 )}
                                 {websiteHref && (
@@ -162,7 +154,7 @@ export default function Footer() {
                                         aria-label="Website"
                                         className="text-gray-500 hover:text-white transition-colors"
                                     >
-                                        <Globe className="w-5 h-5" />
+                                        <FaGlobe className="w-5 h-5" />
                                     </a>
                                 )}
                             </div>
@@ -238,6 +230,19 @@ export default function Footer() {
                         <span>Secure payments by</span>
                         <span className="font-bold text-white">Stripe</span>
                     </div>
+                </div>
+
+                {/* Developer credit */}
+                <div className="border-t border-gray-800 mt-4 pt-4 text-center text-xs text-gray-600">
+                    Designed &amp; developed with ❤️ by{" "}
+                    <a
+                        href="https://linkedin.com/in/shahajadahasib/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary-400 hover:text-white transition-colors font-medium"
+                    >
+                        Hasib
+                    </a>
                 </div>
             </div>
         </footer>

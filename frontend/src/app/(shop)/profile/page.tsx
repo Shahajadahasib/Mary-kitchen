@@ -55,13 +55,25 @@ export default function ProfilePage() {
     });
 
     const handleSaveProfile = async () => {
+        if (!profileForm.phone_number || !profileForm.phone_number.trim()) {
+            toast.error("Phone number is required");
+            return;
+        }
+        if (profileForm.phone_number.trim().length < 8) {
+            toast.error("Please enter a valid phone number");
+            return;
+        }
         try {
             await api.patch("/users/profile/", profileForm);
             await fetchProfile();
             setEditingProfile(false);
             toast.success("Profile updated!");
-        } catch {
-            toast.error("Failed to update profile");
+        } catch (err: any) {
+            const msg =
+                err?.response?.data?.phone_number?.[0] ||
+                err?.response?.data?.message ||
+                "Failed to update profile";
+            toast.error(msg);
         }
     };
 
@@ -164,9 +176,11 @@ export default function ProfilePage() {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Phone
+                                    Phone{" "}
+                                    <span className="text-red-500">*</span>
                                 </label>
                                 <input
+                                    required
                                     value={profileForm.phone_number}
                                     onChange={(e) =>
                                         setProfileForm({
@@ -174,8 +188,14 @@ export default function ProfilePage() {
                                             phone_number: e.target.value,
                                         })
                                     }
-                                    className="input-field"
+                                    className={`input-field ${!profileForm.phone_number?.trim() ? "border-red-300" : ""}`}
+                                    placeholder="+61 4XX XXX XXX"
                                 />
+                                {!profileForm.phone_number?.trim() && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        Phone number is required
+                                    </p>
+                                )}
                             </div>
                             <button
                                 onClick={handleSaveProfile}
@@ -191,7 +211,13 @@ export default function ProfilePage() {
                                 { label: "Email", value: user.email },
                                 {
                                     label: "Phone",
-                                    value: user.phone_number || "Not provided",
+                                    value: user.phone_number ? (
+                                        user.phone_number
+                                    ) : (
+                                        <span className="text-red-500 text-xs">
+                                            Not provided — please update
+                                        </span>
+                                    ),
                                 },
                                 {
                                     label: "Email Verified",
