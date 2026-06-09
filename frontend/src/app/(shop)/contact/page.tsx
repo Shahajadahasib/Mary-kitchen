@@ -20,6 +20,12 @@ type ContactCard = {
 };
 type HoursRow = { day: string; time: string; closed: boolean };
 
+// export const metadata: Metadata = {
+//     title: "Contact Us",
+//     description:
+//         "Get in touch with Marybens Kitchen. Located at Winnellie NT 0820, Darwin Australia.",
+// };
+
 const FALLBACK_CARDS: ContactCard[] = [
     {
         icon: MapPin,

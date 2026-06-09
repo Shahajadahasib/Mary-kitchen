@@ -278,7 +278,7 @@ export default function Header() {
                                 <ShoppingBag className="w-7 h-7" />
                             )}
                             <span className="hidden sm:block text-base md:text-xl">
-                                {storeProfile?.name || "Mary Kitchen"}
+                                {storeProfile?.name || "Mary Ben's Kitchen"}
                             </span>
                         </Link>
 

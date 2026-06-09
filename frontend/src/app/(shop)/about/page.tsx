@@ -1,6 +1,11 @@
 import { Heart, Leaf, MapPin, ShoppingBag, Truck } from "lucide-react";
+import { Metadata } from "next";
 
-export const metadata = { title: "About Us | Mary Kitchen" };
+export const metadata: Metadata = {
+    title: "About Us",
+    description:
+        "Learn about Marybens Kitchen — Darwin's local grocery and food marketplace serving the NT community.",
+};
 
 const values = [
     {

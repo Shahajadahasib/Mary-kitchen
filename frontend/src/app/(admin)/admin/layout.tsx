@@ -84,7 +84,7 @@ export default function AdminLayout({
                     className="flex items-center gap-2 font-bold text-lg text-white"
                 >
                     <ShoppingBag className="w-6 h-6 text-brand-400" /> Mary
-                    Kitchen
+                    Ben's Kitchen
                 </Link>
                 <button
                     onClick={() => setSidebarOpen(false)}
