@@ -9,14 +9,6 @@ import { Search, SlidersHorizontal } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 
-// import type { Metadata } from "next";
-
-// export const metadata: Metadata = {
-//     title: "Fresh Groceries & Food Products",
-//     description:
-//         "Shop fresh fish, meats, vegetables, rice and grains online. Delivered across Darwin NT Australia.",
-// };
-
 function ProductsPageInner() {
     const router = useRouter();
     const searchParams = useSearchParams();

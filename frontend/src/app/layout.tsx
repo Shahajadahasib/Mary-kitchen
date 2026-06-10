@@ -5,8 +5,8 @@ import Providers from "./providers";
 
 export const metadata: Metadata = {
     title: {
-        default: "Marybens Kitchen | Fresh Groceries Delivered in Darwin NT",
-        template: "%s | Marybens Kitchen Darwin",
+        default: "Mary Ben's Kitchen | Fresh Groceries Delivered in Darwin NT",
+        template: "%s | Mary Ben's Kitchen Darwin",
     },
     description:
         "Darwin's local grocery & food marketplace. Fresh fish, meats, vegetables, rice and more delivered to your door in Darwin NT, Australia.",
@@ -20,15 +20,16 @@ export const metadata: Metadata = {
         "fresh meat Darwin",
         "online grocery Darwin Australia",
         "Marybens Kitchen",
+        "grocery Darwin NT",
     ],
-    authors: [{ name: "Marybens Kitchen" }],
-    creator: "Marybens Kitchen",
+    authors: [{ name: "Mary Ben's Kitchen" }],
+    creator: "Mary Ben's Kitchen",
     metadataBase: new URL("https://marybenskitchen.com"),
     openGraph: {
         type: "website",
         locale: "en_AU",
         url: "https://marybenskitchen.com",
-        siteName: "Marybens Kitchen",
+        siteName: "Mary Ben's Kitchen",
         title: "Mary Ben's Kitchen | Fresh Groceries Delivered in Darwin NT",
         description:
             "Darwin's local grocery & food marketplace. Fresh fish, meats, vegetables, rice and more delivered to your door.",
@@ -37,13 +38,13 @@ export const metadata: Metadata = {
                 url: "/og-image.jpg",
                 width: 1200,
                 height: 630,
-                alt: "Marybens Kitchen — Fresh Groceries Darwin NT",
+                alt: "Mary Ben's Kitchen — Fresh Groceries Darwin NT",
             },
         ],
     },
     twitter: {
         card: "summary_large_image",
-        title: "Marybens Kitchen | Fresh Groceries Darwin NT",
+        title: "Mary Ben's Kitchen | Fresh Groceries Darwin NT",
         description:
             "Fresh fish, meats, vegetables and more delivered in Darwin NT Australia.",
         images: ["/og-image.jpg"],
@@ -54,10 +55,16 @@ export const metadata: Metadata = {
         googleBot: {
             index: true,
             follow: true,
+            "max-video-preview": -1,
+            "max-image-preview": "large",
+            "max-snippet": -1,
         },
     },
     alternates: {
         canonical: "https://marybenskitchen.com",
+    },
+    verification: {
+        google: "lwQKYR1HIHSiQ0P5G6tp489wO-I4lENYaKEtjBcm_-o",
     },
 };
 
@@ -70,9 +77,8 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en-AU">
-            <body className={inter.className}>
-                <Providers>{children}</Providers>
-
+            <head>
+                {/* Local Business Structured Data */}
                 <script
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{
@@ -81,7 +87,7 @@ export default function RootLayout({
                             "@type": "GroceryStore",
                             name: "Marybens Kitchen",
                             description:
-                                "Darwin's local grocery & food marketplace",
+                                "Darwin's local grocery & food marketplace. Fresh fish, meats, vegetables and more.",
                             url: "https://marybenskitchen.com",
                             telephone: "+61449529923",
                             email: "hello@marykitchen.com.au",
@@ -98,7 +104,26 @@ export default function RootLayout({
                                 latitude: -12.4634,
                                 longitude: 130.8456,
                             },
-                            openingHours: "Mo-Fr 09:00-17:00",
+                            openingHoursSpecification: [
+                                {
+                                    "@type": "OpeningHoursSpecification",
+                                    dayOfWeek: [
+                                        "Monday",
+                                        "Tuesday",
+                                        "Wednesday",
+                                        "Thursday",
+                                        "Friday",
+                                    ],
+                                    opens: "09:00",
+                                    closes: "17:00",
+                                },
+                                {
+                                    "@type": "OpeningHoursSpecification",
+                                    dayOfWeek: ["Saturday"],
+                                    opens: "10:00",
+                                    closes: "15:00",
+                                },
+                            ],
                             servesCuisine: [
                                 "Groceries",
                                 "Fresh Fish",
@@ -110,9 +135,13 @@ export default function RootLayout({
                                 "@type": "City",
                                 name: "Darwin",
                             },
+                            hasMap: "https://maps.google.com/?q=8/63+Winnellie+Rd+Winnellie+NT+0820",
                         }),
                     }}
                 />
+            </head>
+            <body className={inter.className}>
+                <Providers>{children}</Providers>
             </body>
         </html>
     );
