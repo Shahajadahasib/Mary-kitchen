@@ -195,3 +195,83 @@ def send_sms_placeholder(phone_number: str, message: str):
         )
     except Exception as e:
         print(f"[SMS ERROR] {e}")
+
+@shared_task(bind=True, max_retries=3)
+def notify_admin_new_order(self, order_id: str):
+    """Send email notification to all admin/staff when a new order is placed."""
+    try:
+        from apps.orders.models import Order
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        order = Order.objects.select_related("user").prefetch_related("items").get(id=order_id)
+
+        admin_emails = list(User.objects.filter(
+            is_staff=True, is_active=True
+        ).values_list("email", flat=True))
+
+        if not admin_emails:
+            logger.warning("notify_admin_new_order: no admin emails found")
+            return
+
+        items_text = "\n".join([
+            f"  - {item.product_name} × {item.quantity}  (${item.line_total})"
+            for item in order.items.all()
+        ])
+
+        order_url = f"{settings.FRONTEND_URL}/admin/orders?order={order.order_number}"
+
+        html = f"""
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;background:#f9fafb;border-radius:12px;">
+          <h2 style="color:#1a5276;margin:0 0 4px;">🛒 New Order Received</h2>
+          <p style="color:#555;margin:0 0 24px;font-size:14px;">A customer just placed an order on Mary Kitchen.</p>
+
+          <div style="background:#fff;border-radius:10px;padding:20px;border:1px solid #e5e7eb;margin-bottom:16px;">
+            <table style="width:100%;font-size:14px;color:#444;">
+              <tr><td style="padding:4px 0;color:#888;width:140px;">Order Number</td><td style="font-weight:bold;color:#1a5276;">#{order.order_number}</td></tr>
+              <tr><td style="padding:4px 0;color:#888;">Customer</td><td>{order.user.full_name} ({order.user.email})</td></tr>
+              <tr><td style="padding:4px 0;color:#888;">Order Type</td><td style="text-transform:capitalize;">{order.order_type}</td></tr>
+              <tr><td style="padding:4px 0;color:#888;">Payment</td><td>{order.payment_status}</td></tr>
+              <tr><td style="padding:4px 0;color:#888;">Order Total</td><td style="font-weight:bold;font-size:16px;color:#16a34a;">${order.total_amount}</td></tr>
+            </table>
+          </div>
+
+          <div style="background:#fff;border-radius:10px;padding:20px;border:1px solid #e5e7eb;margin-bottom:20px;">
+            <p style="font-weight:bold;margin:0 0 10px;color:#333;">Items Ordered:</p>
+            <pre style="margin:0;font-size:13px;color:#555;white-space:pre-wrap;">{items_text}</pre>
+          </div>
+
+          <a href="{order_url}" style="display:inline-block;background:#1a5276;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;">
+            View Order in Admin Panel →
+          </a>
+
+          <p style="color:#aaa;font-size:12px;margin:20px 0 0;">
+            This is an automated notification from Mary Kitchen.
+          </p>
+        </div>
+        """
+
+        plain = (
+            f"New Order Received – #{order.order_number}\n\n"
+            f"Customer: {order.user.full_name} ({order.user.email})\n"
+            f"Type: {order.order_type}\n"
+            f"Total: ${order.total_amount}\n"
+            f"Payment: {order.payment_status}\n\n"
+            f"Items:\n{items_text}\n\n"
+            f"View order: {order_url}\n"
+        )
+
+        msg = EmailMultiAlternatives(
+            subject=f"🛒 New Order #{order.order_number} – ${order.total_amount}",
+            body=plain,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=admin_emails,
+        )
+        msg.attach_alternative(html, "text/html")
+        msg.send(fail_silently=False)
+
+        logger.info("notify_admin_new_order: sent to %s for order %s", admin_emails, order.order_number)
+
+    except Exception as exc:
+        logger.exception("notify_admin_new_order failed for order_id=%s", order_id)
+        raise self.retry(exc=exc, countdown=60)

@@ -298,3 +298,7 @@ OTP_EXPIRY_MINUTES = 10
 OTP_LENGTH = 6
 # Separate HMAC signing key for OTP hashes; falls back to SECRET_KEY if unset.
 OTP_SECRET_KEY = config("OTP_SECRET_KEY", default="")
+
+# ─── Data upload size ─────────────────────────────────────────────────────────────────────
+DATA_UPLOAD_MAX_MEMORY_SIZE = config("DATA_UPLOAD_MAX_MEMORY_SIZE", default=20971520, cast=int)
+FILE_UPLOAD_MAX_MEMORY_SIZE = config("FILE_UPLOAD_MAX_MEMORY_SIZE", default=20971520, cast=int)

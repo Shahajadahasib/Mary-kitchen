@@ -53,8 +53,8 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - media_data:/app/media
       - static_data:/app/staticfiles
+      - /var/www/Mary-kitchen/media:/app/media
 
   # ─── Celery Worker ────────────────────────────────────────────────────────────
   celery_worker:

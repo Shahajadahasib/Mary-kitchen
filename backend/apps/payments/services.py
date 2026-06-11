@@ -259,11 +259,15 @@ def handle_payment_success(payment_intent_id: str) -> Payment | None:
             note="Payment received via Stripe",
         )
 
-        from apps.notifications.tasks import send_order_confirmation_email
+        from apps.notifications.tasks import (
+    send_order_confirmation_email,
+    notify_admin_new_order,
+)
 
         notify_staff_new_paid_order(order)
         try:
             send_order_confirmation_email.delay(str(order.id))
+            notify_admin_new_order.delay(str(order.id))
         except Exception:
             # Email/PDF failures must not make a paid checkout look failed.
             import logging
