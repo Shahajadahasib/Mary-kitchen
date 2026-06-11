@@ -146,7 +146,7 @@ export default function ContactPage() {
                         Contact Us
                     </h1>
                     <p className="text-primary-100 text-sm sm:text-lg">
-                        We'd love to hear from you. Get in touch any time.
+                        We&apos;d love to hear from you. Get in touch any time.
                     </p>
                 </div>
             </div>
@@ -241,8 +241,8 @@ export default function ContactPage() {
                                         Message Sent!
                                     </h3>
                                     <p className="text-gray-500">
-                                        Thank you for reaching out. We'll get
-                                        back to you within 24 hours.
+                                        Thank you for reaching out. We&apos;ll
+                                        get back to you within 24 hours.
                                     </p>
                                     <button
                                         onClick={() => {

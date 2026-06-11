@@ -235,8 +235,8 @@ export default function AdminBannersPage() {
                                         colSpan={7}
                                         className="text-center py-12 text-gray-400"
                                     >
-                                        No banners yet. Click "Add Banner" to
-                                        create one.
+                                        No banners yet. Click &quot;Add
+                                        Banner&quot; to create one.
                                     </td>
                                 </tr>
                             ) : (
@@ -681,7 +681,7 @@ export default function AdminBannersPage() {
                             Are you sure you want to delete:
                         </p>
                         <p className="font-semibold text-gray-900 mb-4">
-                            "{deleteTarget.title}"
+                            &quot;{deleteTarget.title}&quot;
                         </p>
                         <div className="flex gap-3">
                             <button

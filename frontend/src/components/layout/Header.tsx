@@ -248,8 +248,8 @@ export default function Header() {
                                                 type="submit"
                                                 className="w-full border-t border-gray-100 px-4 py-2.5 text-left text-sm font-semibold text-primary-700 hover:bg-primary-50"
                                             >
-                                                View all results for "
-                                                {search.trim()}"
+                                                View all results for &quot;
+                                                {search.trim()}&quot;
                                             </button>
                                         )}
                                     </div>
@@ -370,8 +370,8 @@ export default function Header() {
                                                 type="submit"
                                                 className="w-full border-t border-gray-100 px-4 py-2.5 text-left text-sm font-semibold text-primary-700 hover:bg-primary-50"
                                             >
-                                                View all results for "
-                                                {search.trim()}"
+                                                View all results for &quot;
+                                                {search.trim()}&quot;
                                             </button>
                                         )}
                                     </div>
