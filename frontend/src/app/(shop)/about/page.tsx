@@ -43,8 +43,8 @@ export default function AboutPage() {
                         About Mary Kitchen
                     </h1>
                     <p className="text-primary-100 text-sm sm:text-lg max-w-2xl mx-auto">
-                        Darwin's local grocery & food marketplace — bringing
-                        fresh, diverse food to your door.
+                        Darwin&apos;s local grocery & food marketplace —
+                        bringing fresh, diverse food to your door.
                     </p>
                 </div>
             </div>
@@ -58,8 +58,8 @@ export default function AboutPage() {
                     <div className="prose prose-gray text-gray-600 space-y-4 text-base leading-relaxed">
                         <p>
                             Mary Kitchen started as a small dream — to make it
-                            easier for Darwin's diverse community to access the
-                            fresh, authentic ingredients they grew up with.
+                            easier for Darwin&apos;s diverse community to access
+                            the fresh, authentic ingredients they grew up with.
                             Founded in Winnellie, NT, we quickly grew from a
                             local specialty food supplier into a full-service
                             grocery and food marketplace.
@@ -67,10 +67,10 @@ export default function AboutPage() {
                         <p>
                             Our founder, Mary Ben, a Jollof Rice specialist with
                             deep roots in West African cuisine, noticed a gap in
-                            Darwin's market: it was hard to find high-quality
-                            African, Asian, and Pacific Island ingredients
-                            without travelling far or paying excessive prices.
-                            She set out to fix that.
+                            Darwin&apos;s market: it was hard to find
+                            high-quality African, Asian, and Pacific Island
+                            ingredients without travelling far or paying
+                            excessive prices. She set out to fix that.
                         </p>
                         <p>
                             Today, Mary Kitchen serves hundreds of Darwin

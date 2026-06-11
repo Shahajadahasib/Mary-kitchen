@@ -28,7 +28,7 @@ export default function HeroBanner() {
                     {/* Subtext */}
                     <p className="text-sm sm:text-base md:text-lg text-primary-100 mb-6 sm:mb-8 max-w-lg">
                         Shop fresh fish, quality meats, vegetables, rice, and
-                        more. Quality products from Darwin's local food
+                        more. Quality products from Darwin&apos;s local food
                         marketplace.
                     </p>
 
