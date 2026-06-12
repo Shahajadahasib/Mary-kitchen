@@ -8,6 +8,10 @@ export const metadata: Metadata = {
         default: "Mary Ben's Kitchen | Fresh Groceries Delivered in Darwin NT",
         template: "%s | Mary Ben's Kitchen Darwin",
     },
+    icons: {
+        icon: "/favicon.ico",
+        apple: "/apple-touch-icon.png",
+    },
     description:
         "Darwin's local grocery & food marketplace. Fresh fish, meats, vegetables, rice and more delivered to your door in Darwin NT, Australia.",
     keywords: [

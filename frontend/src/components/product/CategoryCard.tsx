@@ -29,7 +29,7 @@ export default function CategoryCard({ category }: CategoryCardProps) {
                             src={src}
                             alt={category.name}
                             fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="object-cover [@media(hover:hover)]:group-hover:scale-105 transition-transform duration-300"
                             sizes="(max-width: 768px) 33vw, 12vw"
                         />
                     </div>
@@ -45,7 +45,7 @@ export default function CategoryCard({ category }: CategoryCardProps) {
                     </div>
                 )}
             </div>
-            <p className="text-xs font-semibold text-gray-700 text-center group-hover:text-primary-700 line-clamp-2">
+            <p className="text-xs font-semibold text-gray-700 text-center [@media(hover:hover)]:group-hover:text-primary-700 line-clamp-2">
                 {category.name}
             </p>
         </Link>

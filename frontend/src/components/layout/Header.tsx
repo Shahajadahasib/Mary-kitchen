@@ -166,98 +166,6 @@ export default function Header() {
     return (
         <>
             <header className="bg-primary-700 text-white sticky top-0 z-50 shadow-lg">
-                {/* Mobile search bar — shown when searchOpen */}
-                {searchOpen && (
-                    <div className="md:hidden bg-primary-800 px-3 py-2">
-                        <form
-                            ref={searchRef}
-                            onSubmit={handleSearch}
-                            className="relative flex"
-                        >
-                            <input
-                                autoFocus
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search groceries, fish, meat..."
-                                className="flex-1 px-4 py-2 text-gray-900 rounded-l-lg text-sm focus:outline-none"
-                            />
-                            <button
-                                type="submit"
-                                className="bg-brand-500 hover:bg-brand-600 px-4 rounded-r-lg transition-colors"
-                            >
-                                <Search className="w-4 h-4" />
-                            </button>
-                            {showDropdown &&
-                                (suggestions.length > 0 ||
-                                    loadingSuggestions) && (
-                                    <div className="absolute left-0 top-full mt-1 w-full overflow-hidden rounded-xl bg-white text-gray-800 shadow-xl border border-gray-100 z-50">
-                                        {loadingSuggestions &&
-                                        suggestions.length === 0 ? (
-                                            <div className="px-4 py-3 text-sm text-gray-500">
-                                                Searching...
-                                            </div>
-                                        ) : (
-                                            suggestions.map((item) => {
-                                                const price =
-                                                    item.sale_price ??
-                                                    item.base_price;
-                                                return (
-                                                    <button
-                                                        type="button"
-                                                        key={item.id}
-                                                        onClick={() =>
-                                                            handleSuggestionClick(
-                                                                item,
-                                                            )
-                                                        }
-                                                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50"
-                                                    >
-                                                        <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-gray-100">
-                                                            {item.primary_image ? (
-                                                                <Image
-                                                                    src={
-                                                                        item.primary_image
-                                                                    }
-                                                                    alt={
-                                                                        item.name
-                                                                    }
-                                                                    fill
-                                                                    className="object-cover"
-                                                                    sizes="40px"
-                                                                />
-                                                            ) : (
-                                                                <ShoppingBag className="m-2 h-6 w-6 text-gray-300" />
-                                                            )}
-                                                        </div>
-                                                        <div className="min-w-0 flex-1">
-                                                            <p className="truncate text-sm font-medium text-gray-900">
-                                                                {item.name}
-                                                            </p>
-                                                            <p className="text-xs font-semibold text-primary-700">
-                                                                {formatCurrency(
-                                                                    price,
-                                                                )}
-                                                            </p>
-                                                        </div>
-                                                    </button>
-                                                );
-                                            })
-                                        )}
-                                        {search.trim().length >= 2 && (
-                                            <button
-                                                type="submit"
-                                                className="w-full border-t border-gray-100 px-4 py-2.5 text-left text-sm font-semibold text-primary-700 hover:bg-primary-50"
-                                            >
-                                                View all results for &quot;
-                                                {search.trim()}&quot;
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
-                        </form>
-                    </div>
-                )}
-
                 {/* Main header bar */}
                 <div className="container-xl">
                     <div className="flex items-center gap-2 sm:gap-4 py-3">
@@ -277,7 +185,7 @@ export default function Header() {
                             ) : (
                                 <ShoppingBag className="w-7 h-7" />
                             )}
-                            <span className="hidden sm:block text-base md:text-xl">
+                            <span className="text-sm font-bold leading-tight block md:text-lg">
                                 {storeProfile?.name || "Mary Ben's Kitchen"}
                             </span>
                         </Link>
@@ -382,7 +290,10 @@ export default function Header() {
                         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-auto md:ml-0">
                             {/* Mobile search toggle */}
                             <button
-                                onClick={() => setSearchOpen(!searchOpen)}
+                                onClick={() => {
+                                    setSearchOpen(!searchOpen);
+                                    setMenuOpen(false);
+                                }}
                                 className="md:hidden p-2 hover:bg-primary-600 rounded-lg transition-colors"
                             >
                                 {searchOpen ? (
@@ -494,7 +405,10 @@ export default function Header() {
 
                             {/* Mobile menu toggle */}
                             <button
-                                onClick={() => setMenuOpen(!menuOpen)}
+                                onClick={() => {
+                                    setMenuOpen(!menuOpen);
+                                    setSearchOpen(false);
+                                }}
                                 className="md:hidden p-2 hover:bg-primary-600 rounded-lg transition-colors"
                             >
                                 {menuOpen ? (
@@ -535,6 +449,97 @@ export default function Header() {
                         </nav>
                     </div>
                 </div>
+                {/* Mobile search bar — shown when searchOpen */}
+                {searchOpen && (
+                    <div className="md:hidden bg-primary-800 px-3 py-2">
+                        <form
+                            ref={searchRef}
+                            onSubmit={handleSearch}
+                            className="relative flex"
+                        >
+                            <input
+                                autoFocus
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search groceries, fish, meat..."
+                                className="flex-1 px-4 py-2 text-gray-900 rounded-l-lg text-sm focus:outline-none"
+                            />
+                            <button
+                                type="submit"
+                                className="bg-brand-500 hover:bg-brand-600 px-4 rounded-r-lg transition-colors"
+                            >
+                                <Search className="w-4 h-4" />
+                            </button>
+                            {showDropdown &&
+                                (suggestions.length > 0 ||
+                                    loadingSuggestions) && (
+                                    <div className="absolute left-0 top-full mt-1 w-full overflow-hidden rounded-xl bg-white text-gray-800 shadow-xl border border-gray-100 z-50">
+                                        {loadingSuggestions &&
+                                        suggestions.length === 0 ? (
+                                            <div className="px-4 py-3 text-sm text-gray-500">
+                                                Searching...
+                                            </div>
+                                        ) : (
+                                            suggestions.map((item) => {
+                                                const price =
+                                                    item.sale_price ??
+                                                    item.base_price;
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        key={item.id}
+                                                        onClick={() =>
+                                                            handleSuggestionClick(
+                                                                item,
+                                                            )
+                                                        }
+                                                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50"
+                                                    >
+                                                        <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-gray-100">
+                                                            {item.primary_image ? (
+                                                                <Image
+                                                                    src={
+                                                                        item.primary_image
+                                                                    }
+                                                                    alt={
+                                                                        item.name
+                                                                    }
+                                                                    fill
+                                                                    className="object-cover"
+                                                                    sizes="40px"
+                                                                />
+                                                            ) : (
+                                                                <ShoppingBag className="m-2 h-6 w-6 text-gray-300" />
+                                                            )}
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="truncate text-sm font-medium text-gray-900">
+                                                                {item.name}
+                                                            </p>
+                                                            <p className="text-xs font-semibold text-primary-700">
+                                                                {formatCurrency(
+                                                                    price,
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })
+                                        )}
+                                        {search.trim().length >= 2 && (
+                                            <button
+                                                type="submit"
+                                                className="w-full border-t border-gray-100 px-4 py-2.5 text-left text-sm font-semibold text-primary-700 hover:bg-primary-50"
+                                            >
+                                                View all results for &quot;
+                                                {search.trim()}&quot;
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                        </form>
+                    </div>
+                )}
 
                 {/* Mobile full-screen menu */}
                 {menuOpen && (
