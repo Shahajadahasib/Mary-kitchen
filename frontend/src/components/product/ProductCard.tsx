@@ -126,7 +126,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                         alt={product.name}
                         fill
                         sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="object-cover [@media(hover:hover)]:group-hover:scale-105 transition-transform duration-300"
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-4xl sm:text-5xl text-gray-300">
@@ -145,7 +145,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                         </span>
                     </div>
                 )}
-                <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity">
                     <button
                         onClick={handleWishlist}
                         className="w-7 h-7 sm:w-8 sm:h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-red-50"
@@ -160,7 +160,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                 <p className="text-xs text-gray-400 mb-0.5 truncate">
                     {product.category_name}
                 </p>
-                <p className="text-xs sm:text-sm font-semibold text-gray-800 line-clamp-2 flex-1 group-hover:text-primary-700 transition-colors">
+                <p className="text-xs sm:text-sm font-semibold text-gray-800 line-clamp-2 flex-1 [@media(hover:hover)]:group-hover:text-primary-700 transition-colors">
                     {product.name}
                 </p>
 
