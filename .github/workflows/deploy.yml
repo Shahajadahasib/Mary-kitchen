@@ -39,18 +39,6 @@ jobs:
         timeout-minutes: 30
 
         steps:
-            - name: Wait for VPS to be reachable
-              run: |
-                  echo "Checking VPS connectivity..."
-                  for i in {1..5}; do
-                    if nc -z -w 10 ${{ secrets.VPS_HOST }} 22; then
-                      echo "✅ VPS port 22 is reachable"
-                      break
-                    fi
-                    echo "Attempt $i failed, waiting 15 seconds..."
-                    sleep 15
-                  done
-
             - name: Deploy with zero downtime
               uses: appleboy/ssh-action@v1.0.3
               with:
@@ -61,39 +49,29 @@ jobs:
                   timeout: 120s
                   command_timeout: 25m
                   script: |
-                      # Exit on errors, treat unset variables as errors, and print commands as they run
-                      set -ex
-
+                      set -e
                       cd /var/www/Mary-kitchen
 
                       echo "⬇️ Pulling latest code..."
                       git pull origin main
 
-                      # Auto-detect whether to use 'docker compose' or 'docker-compose'
-                      if command -v docker-compose &> /dev/null; then
-                          COMPOSE_CMD="docker-compose"
-                      else
-                          COMPOSE_CMD="docker compose"
-                       Clamp
-                      fi
-
-                      echo "🔨 Building new images without stopping current containers..."
-                      $COMPOSE_CMD build
+                      echo "🔨 Building new images..."
+                      docker-compose build
 
                       echo "🗄️ Running migrations..."
-                      $COMPOSE_CMD run --rm backend python manage.py migrate --no-input
+                      docker-compose run --rm backend python manage.py migrate --no-input
 
                       echo "📁 Collecting static files..."
-                      $COMPOSE_CMD run --rm backend python manage.py collectstatic --no-input
+                      docker-compose run --rm backend python manage.py collectstatic --no-input
 
-                      echo "🔄 Restarting services one by one..."
-                      $COMPOSE_CMD up -d --no-deps backend
+                      echo "🔄 Restarting services one by one with forced recreation..."
+                      docker-compose up -d --no-deps --force-recreate backend
                       sleep 10
-                      $COMPOSE_CMD up -d --no-deps celery_worker
+                      docker-compose up -d --no-deps --force-recreate celery_worker
                       sleep 5
-                      $COMPOSE_CMD up -d --no-deps celery_beat
+                      docker-compose up -d --no-deps --force-recreate celery_beat
                       sleep 5
-                      $COMPOSE_CMD up -d --no-deps frontend
+                      docker-compose up -d --no-deps --force-recreate frontend
                       sleep 15
 
                       echo "🧹 Cleaning up old images..."
