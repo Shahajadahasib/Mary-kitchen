@@ -15,16 +15,36 @@ export const metadata: Metadata = {
     description:
         "Darwin's local grocery & food marketplace. Fresh fish, meats, vegetables, rice and more delivered to your door in Darwin NT, Australia.",
     keywords: [
+        // Primary Darwin keywords
         "grocery delivery Darwin",
-        "fresh fish Darwin NT",
+        "grocery delivery Darwin NT",
+        "food delivery Darwin NT",
+        "online grocery Darwin",
         "Darwin grocery store",
-        "food delivery Darwin",
-        "Winnellie grocery",
+        "Darwin NT grocery",
+        // Product keywords
+        "fresh fish Darwin",
+        "fresh fish delivery Darwin",
+        "fresh meat Darwin NT",
+        "vegetables Darwin",
         "African food Darwin",
-        "fresh meat Darwin",
-        "online grocery Darwin Australia",
+        "African grocery Darwin NT",
+        "rice delivery Darwin",
+        "seafood Darwin NT",
+        // Suburb keywords
+        "grocery delivery Winnellie",
+        "grocery delivery Palmerston",
+        "grocery delivery Casuarina",
+        "grocery delivery Nightcliff",
+        "grocery delivery Stuart Park",
+        // Store name
         "Marybens Kitchen",
-        "grocery Darwin NT",
+        "Mary Bens Kitchen Darwin",
+        "Mary Kitchen Darwin",
+        // Long tail
+        "fresh food delivery Darwin Australia",
+        "same day grocery delivery Darwin",
+        "next day delivery Darwin NT",
     ],
     authors: [{ name: "Mary Ben's Kitchen" }],
     creator: "Mary Ben's Kitchen",
@@ -68,8 +88,9 @@ export const metadata: Metadata = {
         canonical: "https://marybenskitchen.com",
     },
     verification: {
-        google: "lwQKYR1HIHSiQ0P5G6tp489wO-I4lENYaKEtjBcm_-o",
+        google: "ITgkbC6xr62PlRoWNDQcgj3aB0NjwIq1cdLbCKssxyI",
     },
+    category: "grocery",
 };
 
 const inter = Inter({ subsets: ["latin"] });
@@ -93,7 +114,7 @@ export default function RootLayout({
                             description:
                                 "Darwin's local grocery & food marketplace. Fresh fish, meats, vegetables and more.",
                             url: "https://marybenskitchen.com",
-                            telephone: "+61449529923",
+                            telephone: "+61415365680",
                             email: "hello@marykitchen.com.au",
                             address: {
                                 "@type": "PostalAddress",
@@ -131,15 +152,50 @@ export default function RootLayout({
                             servesCuisine: [
                                 "Groceries",
                                 "Fresh Fish",
+                                "Seafood",
                                 "Meat",
                                 "Vegetables",
+                                "Rice",
+                                "Grains",
+                                "African Food",
                             ],
                             priceRange: "$$",
                             areaServed: {
                                 "@type": "City",
                                 name: "Darwin",
+                                containedIn: "Northern Territory, Australia",
                             },
                             hasMap: "https://maps.google.com/?q=8/63+Winnellie+Rd+Winnellie+NT+0820",
+                            offers: {
+                                "@type": "Offer",
+                                description:
+                                    "Fresh grocery delivery across Darwin NT",
+                                areaServed:
+                                    "Darwin, Northern Territory, Australia",
+                            },
+                        }),
+                    }}
+                />
+
+                {/* Delivery Service Schema */}
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            "@context": "https://schema.org",
+                            "@type": "DeliveryEvent",
+                            name: "Grocery Delivery Darwin NT",
+                            description:
+                                "Same day and next day grocery delivery across Darwin NT",
+                            location: {
+                                "@type": "Place",
+                                address: {
+                                    "@type": "PostalAddress",
+                                    addressLocality: "Darwin",
+                                    addressRegion: "NT",
+                                    addressCountry: "AU",
+                                },
+                            },
                         }),
                     }}
                 />
