@@ -61,29 +61,39 @@ jobs:
                   timeout: 120s
                   command_timeout: 25m
                   script: |
-                      set -e
+                      # Exit on errors, treat unset variables as errors, and print commands as they run
+                      set -ex
+
                       cd /var/www/Mary-kitchen
 
                       echo "⬇️ Pulling latest code..."
                       git pull origin main
 
+                      # Auto-detect whether to use 'docker compose' or 'docker-compose'
+                      if command -v docker-compose &> /dev/null; then
+                          COMPOSE_CMD="docker-compose"
+                      else
+                          COMPOSE_CMD="docker compose"
+                       Clamp
+                      fi
+
                       echo "🔨 Building new images without stopping current containers..."
-                      docker-compose build
+                      $COMPOSE_CMD build
 
                       echo "🗄️ Running migrations..."
-                      docker-compose run --rm backend python manage.py migrate --no-input
+                      $COMPOSE_CMD run --rm backend python manage.py migrate --no-input
 
                       echo "📁 Collecting static files..."
-                      docker-compose run --rm backend python manage.py collectstatic --no-input
+                      $COMPOSE_CMD run --rm backend python manage.py collectstatic --no-input
 
                       echo "🔄 Restarting services one by one..."
-                      docker-compose up -d --no-deps backend
+                      $COMPOSE_CMD up -d --no-deps backend
                       sleep 10
-                      docker-compose up -d --no-deps celery_worker
+                      $COMPOSE_CMD up -d --no-deps celery_worker
                       sleep 5
-                      docker-compose up -d --no-deps celery_beat
+                      $COMPOSE_CMD up -d --no-deps celery_beat
                       sleep 5
-                      docker-compose up -d --no-deps frontend
+                      $COMPOSE_CMD up -d --no-deps frontend
                       sleep 15
 
                       echo "🧹 Cleaning up old images..."
