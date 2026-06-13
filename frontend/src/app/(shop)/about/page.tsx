@@ -2,11 +2,13 @@ import { Heart, Leaf, MapPin, ShoppingBag, Truck } from "lucide-react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "About Us",
+    title: "About Us — Darwin's Local Grocery Marketplace",
     description:
-        "Learn about Marybens Kitchen — Darwin's local grocery and food marketplace serving the NT community.",
+        "Marybens Kitchen is Darwin NT's local grocery & food marketplace. Based in Winnellie, we deliver fresh fish, meats, vegetables and more across Darwin and Palmerston.",
+    alternates: {
+        canonical: "https://marybenskitchen.com/about",
+    },
 };
-
 const values = [
     {
         icon: Leaf,

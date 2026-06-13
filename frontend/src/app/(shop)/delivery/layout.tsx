@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Delivery Information",
+    title: "Delivery Information — Darwin NT Grocery Delivery",
     description:
-        "Darwin-wide grocery delivery from Marybens Kitchen. Fast same-day and next-day delivery across Darwin NT.",
+        "Fast grocery delivery across Darwin NT. We deliver to Winnellie, Palmerston, Casuarina, Nightcliff, Stuart Park and surrounding areas. Same day and next day delivery available.",
+    alternates: {
+        canonical: "https://marybenskitchen.com/delivery",
+    },
 };
 
 export default function DeliveryLayout({
