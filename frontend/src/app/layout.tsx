@@ -115,7 +115,7 @@ export default function RootLayout({
                                 "Darwin's local grocery & food marketplace. Fresh fish, meats, vegetables and more.",
                             url: "https://marybenskitchen.com",
                             telephone: "+61415365680",
-                            email: "hello@marykitchen.com.au",
+                            email: "darwindsfood@gmail.com",
                             address: {
                                 "@type": "PostalAddress",
                                 streetAddress: "8/63 Winnellie Rd",
