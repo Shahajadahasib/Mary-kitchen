@@ -24,6 +24,7 @@ jobs:
                   timeout: 60s
                   command_timeout: 20m
                   script: |
+                      # Navigating to the verified uppercase path
                       cd /var/www/Mary-kitchen
 
                       # Pull latest code
@@ -32,6 +33,9 @@ jobs:
                       # Rebuild and restart containers
                       docker-compose down
                       docker-compose up -d --build
+
+                      # Wait 10 seconds for Django and Postgres (5432) to initialize
+                      sleep 10
 
                       # Run migrations
                       docker-compose exec -T backend python manage.py migrate
