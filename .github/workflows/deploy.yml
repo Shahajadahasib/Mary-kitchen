@@ -39,6 +39,18 @@ jobs:
         timeout-minutes: 30
 
         steps:
+            - name: Wait for VPS to be reachable
+              run: |
+                  echo "Checking VPS connectivity..."
+                  for i in {1..5}; do
+                    if nc -z -w 10 ${{ secrets.VPS_HOST }} 22; then
+                      echo "✅ VPS port 22 is reachable"
+                      break
+                    fi
+                    echo "Attempt $i failed, waiting 15 seconds..."
+                    sleep 15
+                  done
+
             - name: Deploy with zero downtime
               uses: appleboy/ssh-action@v1.0.3
               with:
@@ -46,8 +58,8 @@ jobs:
                   username: ${{ secrets.VPS_USER }}
                   key: ${{ secrets.VPS_SSH_KEY }}
                   port: 22
-                  timeout: 60s
-                  command_timeout: 20m
+                  timeout: 120s
+                  command_timeout: 25m
                   script: |
                       set -e
                       cd /var/www/Mary-kitchen
@@ -66,11 +78,13 @@ jobs:
 
                       echo "🔄 Restarting services one by one..."
                       docker-compose up -d --no-deps backend
-                      sleep 5
-                      docker-compose up -d --no-deps celery_worker
-                      docker-compose up -d --no-deps celery_beat
-                      docker-compose up -d --no-deps frontend
                       sleep 10
+                      docker-compose up -d --no-deps celery_worker
+                      sleep 5
+                      docker-compose up -d --no-deps celery_beat
+                      sleep 5
+                      docker-compose up -d --no-deps frontend
+                      sleep 15
 
                       echo "🧹 Cleaning up old images..."
                       docker image prune -f
