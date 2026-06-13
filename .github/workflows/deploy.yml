@@ -59,6 +59,21 @@ jobs:
                     EOF
                   chmod 600 "$GITHUB_WORKSPACE/deploy_key"
 
+            - name: Debug SSH key file
+              run: |
+                  echo "--- ls -l ---"
+                  ls -l /github/workspace/deploy_key || true
+                  echo "--- stat ---"
+                  stat -c "%a %U %G" /github/workspace/deploy_key || true
+                  echo "--- first line ---"
+                  head -n1 /github/workspace/deploy_key || true
+                  echo "--- size (bytes) ---"
+                  wc -c /github/workspace/deploy_key || true
+                  echo "--- ssh-keygen -y (attempt) ---"
+                  ssh-keygen -y -f /github/workspace/deploy_key > /github/workspace/deploy_key.pub 2>/github/workspace/sshkeygen.err || true
+                  echo "ssh-keygen stderr (first 50 lines):"
+                  sed -n '1,50p' /github/workspace/sshkeygen.err || true
+
             - name: Deploy with zero downtime
               uses: appleboy/ssh-action@v1.0.3
               with:
