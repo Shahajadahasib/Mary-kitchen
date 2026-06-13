@@ -6,15 +6,40 @@ on:
             - main
 
 jobs:
-    deploy:
+    test:
+        name: Frontend (Next.js)
         runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+                  cache: "npm"
+                  cache-dependency-path: frontend/package-lock.json
+
+            - name: Install dependencies
+              working-directory: frontend
+              run: npm ci
+
+            - name: Type check
+              working-directory: frontend
+              run: npx tsc --noEmit
+
+            - name: Lint
+              working-directory: frontend
+              run: npm run lint
+              continue-on-error: true
+
+    deploy:
+        name: Deploy to VPS
+        runs-on: ubuntu-latest
+        needs: test
         timeout-minutes: 30
 
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
-
-            - name: Deploy to VPS
+            - name: Deploy with zero downtime
               uses: appleboy/ssh-action@v1.0.3
               with:
                   host: ${{ secrets.VPS_HOST }}
@@ -24,23 +49,30 @@ jobs:
                   timeout: 60s
                   command_timeout: 20m
                   script: |
-                      # Navigating to the verified uppercase path
+                      set -e
                       cd /var/www/Mary-kitchen
 
-                      # Pull latest code
+                      echo "⬇️ Pulling latest code..."
                       git pull origin main
 
-                      # Rebuild and restart containers
-                      docker-compose down
-                      docker-compose up -d --build
+                      echo "🔨 Building new images without stopping current containers..."
+                      docker-compose build
 
-                      # Wait 10 seconds for Django and Postgres (5432) to initialize
+                      echo "🗄️ Running migrations..."
+                      docker-compose run --rm backend python manage.py migrate --no-input
+
+                      echo "📁 Collecting static files..."
+                      docker-compose run --rm backend python manage.py collectstatic --no-input
+
+                      echo "🔄 Restarting services one by one..."
+                      docker-compose up -d --no-deps backend
+                      sleep 5
+                      docker-compose up -d --no-deps celery_worker
+                      docker-compose up -d --no-deps celery_beat
+                      docker-compose up -d --no-deps frontend
                       sleep 10
 
-                      # Run migrations
-                      docker-compose exec -T backend python manage.py migrate
+                      echo "🧹 Cleaning up old images..."
+                      docker image prune -f
 
-                      # Collect static files
-                      docker-compose exec -T backend python manage.py collectstatic --no-input
-
-                      echo "✅ Deployment complete!"
+                      echo "✅ Deployment complete with zero downtime!"

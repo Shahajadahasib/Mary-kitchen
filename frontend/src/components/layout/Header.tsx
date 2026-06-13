@@ -126,12 +126,15 @@ export default function Header() {
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as Node;
-            if (!searchRef.current?.contains(target)) setShowDropdown(false);
             if (!userMenuRef.current?.contains(target)) setUserMenuOpen(false);
         };
         window.addEventListener("click", handleClickOutside);
         return () => window.removeEventListener("click", handleClickOutside);
     }, []);
+
+    const handleSearchBlur = () => {
+        setTimeout(() => setShowDropdown(false), 200);
+    };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -207,8 +210,9 @@ export default function Header() {
                                         )
                                             setShowDropdown(true);
                                     }}
+                                    onBlur={handleSearchBlur}
                                     placeholder="Search groceries, fish, meat..."
-                                    className="flex-1 px-4 py-2 text-gray-900 rounded-l-lg text-sm focus:outline-none"
+                                    className="flex-1 px-4 py-2 text-gray-900 rounded-l-lg text-base focus:outline-none"
                                 />
                                 <button
                                     type="submit"
@@ -461,8 +465,9 @@ export default function Header() {
                                 autoFocus
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
+                                onBlur={handleSearchBlur}
                                 placeholder="Search groceries, fish, meat..."
-                                className="flex-1 px-4 py-2 text-gray-900 rounded-l-lg text-sm focus:outline-none"
+                                className="flex-1 px-4 py-2 text-gray-900 rounded-l-lg text-base focus:outline-none"
                             />
                             <button
                                 type="submit"
