@@ -32,6 +32,18 @@ jobs:
               run: npm run lint
               continue-on-error: true
 
+    connectivity:
+        name: Check SSH connectivity
+        runs-on: ubuntu-latest
+        needs: test
+        steps:
+            - name: Test SSH port reachability
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y netcat
+                  echo "Testing SSH connectivity to ${{ secrets.VPS_HOST }}:22"
+                  nc -vz ${{ secrets.VPS_HOST }} 22
+
     deploy:
         name: Deploy to VPS
         runs-on: ubuntu-latest
@@ -39,15 +51,23 @@ jobs:
         timeout-minutes: 30
 
         steps:
+            - name: Write SSH key to file
+              run: |
+                  cat > /tmp/deploy_key <<'EOF'
+                    ${{ secrets.VPS_SSH_KEY }}
+                    EOF
+                  chmod 600 /tmp/deploy_key
+
             - name: Deploy with zero downtime
               uses: appleboy/ssh-action@v1.0.3
               with:
                   host: ${{ secrets.VPS_HOST }}
                   username: ${{ secrets.VPS_USER }}
-                  key: ${{ secrets.VPS_SSH_KEY }}
+                  key_path: /tmp/deploy_key
                   port: 22
                   timeout: 120s
                   command_timeout: 25m
+                  debug: true
                   script: |
                       set -e
                       cd /var/www/Mary-kitchen
