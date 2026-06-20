@@ -32,68 +32,82 @@ jobs:
               run: npm run lint
               continue-on-error: true
 
+    connectivity:
+        name: Check SSH connectivity
+        runs-on: ubuntu-latest
+        needs: test
+        steps:
+            - name: Test SSH port reachability
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y netcat-openbsd
+                  echo "Testing SSH connectivity to ${{ secrets.VPS_HOST }}:22"
+                  nc -vz ${{ secrets.VPS_HOST }} 22
+
     deploy:
         name: Deploy to VPS
         runs-on: ubuntu-latest
-        needs: test
+        needs: connectivity
         timeout-minutes: 30
 
         steps:
-            - name: Wait for VPS to be reachable
+            - name: Write SSH key to workspace
               run: |
-                  echo "Checking VPS connectivity..."
-                  for i in {1..5}; do
-                    if nc -z -w 10 ${{ secrets.VPS_HOST }} 22; then
-                      echo "✅ VPS port 22 is reachable"
-                      break
-                    fi
-                    echo "Attempt $i failed, waiting 15 seconds..."
-                    sleep 15
-                  done
+                  mkdir -p "$GITHUB_WORKSPACE"
+                  cat > "$GITHUB_WORKSPACE/deploy_key" <<'EOF'
+                    ${{ secrets.VPS_SSH_KEY }}
+                    EOF
+                  chmod 600 "$GITHUB_WORKSPACE/deploy_key"
+
+            - name: Debug SSH key file
+              run: |
+                  echo "--- ls -l ---"
+                  ls -l /github/workspace/deploy_key || true
+                  echo "--- stat ---"
+                  stat -c "%a %U %G" /github/workspace/deploy_key || true
+                  echo "--- first line ---"
+                  head -n1 /github/workspace/deploy_key || true
+                  echo "--- size (bytes) ---"
+                  wc -c /github/workspace/deploy_key || true
+                  echo "--- ssh-keygen -y (attempt) ---"
+                  ssh-keygen -y -f /github/workspace/deploy_key > /github/workspace/deploy_key.pub 2>/github/workspace/sshkeygen.err || true
+                  echo "ssh-keygen stderr (first 50 lines):"
+                  sed -n '1,50p' /github/workspace/sshkeygen.err || true
 
             - name: Deploy with zero downtime
               uses: appleboy/ssh-action@v1.0.3
               with:
                   host: ${{ secrets.VPS_HOST }}
                   username: ${{ secrets.VPS_USER }}
-                  key: ${{ secrets.VPS_SSH_KEY }}
+                  key_path: /github/workspace/deploy_key
                   port: 22
                   timeout: 120s
                   command_timeout: 25m
+                  debug: true
                   script: |
-                      # Exit on errors, treat unset variables as errors, and print commands as they run
-                      set -ex
-
+                      set -e
                       cd /var/www/Mary-kitchen
 
                       echo "⬇️ Pulling latest code..."
                       git pull origin main
 
-                      # Auto-detect whether to use 'docker compose' or 'docker-compose'
-                      if command -v docker-compose &> /dev/null; then
-                          COMPOSE_CMD="docker-compose"
-                      else
-                          COMPOSE_CMD="docker compose"
-                       Clamp
-                      fi
-
-                      echo "🔨 Building new images without stopping current containers..."
-                      $COMPOSE_CMD build
+                      echo "🔨 Building new images..."
+                      docker-compose build
 
                       echo "🗄️ Running migrations..."
-                      $COMPOSE_CMD run --rm backend python manage.py migrate --no-input
+                      docker-compose run --rm backend python manage.py migrate --no-input
 
                       echo "📁 Collecting static files..."
-                      $COMPOSE_CMD run --rm backend python manage.py collectstatic --no-input
+                      docker-compose run --rm backend python manage.py collectstatic --no-input
 
-                      echo "🔄 Restarting services one by one..."
-                      $COMPOSE_CMD up -d --no-deps backend
+                      echo "🔄 Restarting services one by one with forced recreation..."
+                      docker-compose up -d --no-deps --force-recreate backend
                       sleep 10
-                      $COMPOSE_CMD up -d --no-deps celery_worker
+                      docker-compose up -d --no-deps --force-recreate celery_worker
                       sleep 5
-                      $COMPOSE_CMD up -d --no-deps celery_beat
+                      docker-compose up -d --no-deps --force-recreate celery_beat
                       sleep 5
-                      $COMPOSE_CMD up -d --no-deps frontend
+                      docker-compose up -d --no-deps --force-recreate frontend
                       sleep 15
 
                       echo "🧹 Cleaning up old images..."
