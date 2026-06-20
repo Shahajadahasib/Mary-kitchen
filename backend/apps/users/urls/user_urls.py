@@ -10,6 +10,7 @@ from apps.users.views import (
     UserProfileView,
     WishlistItemView,
     WishlistView,
+    AdminResetLockoutView,
 )
 
 router = DefaultRouter()
