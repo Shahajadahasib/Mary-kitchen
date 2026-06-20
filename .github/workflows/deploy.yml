@@ -32,75 +32,34 @@ jobs:
               run: npm run lint
               continue-on-error: true
 
-    connectivity:
-        name: Check SSH connectivity
-        runs-on: ubuntu-latest
-        needs: test
-        steps:
-            - name: Test SSH port reachability
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y netcat-openbsd
-                  echo "Testing SSH connectivity to ${{ secrets.VPS_HOST }}:22"
-                  nc -vz ${{ secrets.VPS_HOST }} 22
-
     deploy:
         name: Deploy to VPS
         runs-on: ubuntu-latest
-        needs: connectivity
+        needs: test
         timeout-minutes: 30
 
         steps:
-            - name: Write SSH key to workspace
-              run: |
-                  mkdir -p "$GITHUB_WORKSPACE"
-                  cat > "$GITHUB_WORKSPACE/deploy_key" <<'EOF'
-                    ${{ secrets.VPS_SSH_KEY }}
-                    EOF
-                  chmod 600 "$GITHUB_WORKSPACE/deploy_key"
-
-            - name: Debug SSH key file
-              run: |
-                  echo "--- ls -l ---"
-                  ls -l /github/workspace/deploy_key || true
-                  echo "--- stat ---"
-                  stat -c "%a %U %G" /github/workspace/deploy_key || true
-                  echo "--- first line ---"
-                  head -n1 /github/workspace/deploy_key || true
-                  echo "--- size (bytes) ---"
-                  wc -c /github/workspace/deploy_key || true
-                  echo "--- ssh-keygen -y (attempt) ---"
-                  ssh-keygen -y -f /github/workspace/deploy_key > /github/workspace/deploy_key.pub 2>/github/workspace/sshkeygen.err || true
-                  echo "ssh-keygen stderr (first 50 lines):"
-                  sed -n '1,50p' /github/workspace/sshkeygen.err || true
-
             - name: Deploy with zero downtime
               uses: appleboy/ssh-action@v1.0.3
               with:
                   host: ${{ secrets.VPS_HOST }}
                   username: ${{ secrets.VPS_USER }}
-                  key_path: /github/workspace/deploy_key
+                  key: ${{ secrets.VPS_SSH_KEY }}
                   port: 22
                   timeout: 120s
                   command_timeout: 25m
-                  debug: true
                   script: |
                       set -e
                       cd /var/www/Mary-kitchen
-
                       echo "⬇️ Pulling latest code..."
                       git pull origin main
-
                       echo "🔨 Building new images..."
                       docker-compose build
-
                       echo "🗄️ Running migrations..."
                       docker-compose run --rm backend python manage.py migrate --no-input
-
                       echo "📁 Collecting static files..."
                       docker-compose run --rm backend python manage.py collectstatic --no-input
-
-                      echo "🔄 Restarting services one by one with forced recreation..."
+                      echo "🔄 Restarting services one by one..."
                       docker-compose up -d --no-deps --force-recreate backend
                       sleep 10
                       docker-compose up -d --no-deps --force-recreate celery_worker
@@ -109,8 +68,6 @@ jobs:
                       sleep 5
                       docker-compose up -d --no-deps --force-recreate frontend
                       sleep 15
-
                       echo "🧹 Cleaning up old images..."
                       docker image prune -f
-
                       echo "✅ Deployment complete with zero downtime!"
