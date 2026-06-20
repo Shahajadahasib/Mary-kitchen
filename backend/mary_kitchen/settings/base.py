@@ -128,10 +128,15 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # ─── Login Brute-force Protection ─────────────────────────────────────────────
-AXES_FAILURE_LIMIT = 5
-AXES_COOLOFF_TIME = timedelta(hours=1)
+AXES_FAILURE_LIMIT = 10
+AXES_COOLOFF_TIME = timedelta(minutes=5)
 AXES_RESET_ON_SUCCESS = True
 AXES_USERNAME_FORM_FIELD = "email"
+AXES_ONLY_ADMIN_SITE = False
+
+AXES_EXCLUDE_URLS = [
+    "/django-admin/",
+]
 
 # ─── Password Validation ──────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
