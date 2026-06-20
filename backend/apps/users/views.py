@@ -360,3 +360,17 @@ class AdminUserDetailView(generics.RetrieveUpdateDestroyAPIView):
             instance.delete()
         except ProtectedError as e:
             raise serializers.ValidationError(f"Cannot delete user: {e}")
+
+            
+class AdminResetLockoutView(APIView):
+    """POST /api/v1/users/admin/reset-lockout/ — reset all axes lockouts."""
+    permission_classes = ADMIN_API_PERMISSION_CLASSES
+
+    def post(self, request):
+        from axes.models import AccessAttempt
+        count = AccessAttempt.objects.count()
+        AccessAttempt.objects.all().delete()
+        return Response({
+            "success": True,
+            "message": f"Cleared {count} lockout(s) successfully."
+        })
