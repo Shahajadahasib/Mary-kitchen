@@ -3,6 +3,12 @@
 
 A full-stack grocery marketplace built for **Darwin, NT, Australia** — featuring fresh fish, meats, vegetables, grains and more.
 
+> 🚧 **In progress:** a second storefront, "Mary Ben's Kitchen Restaurant", is being added alongside
+> the grocery shop, sharing one backend, one login, and one admin console. The backend foundation
+> (menu catalogue, unified order/cart pipeline) has shipped — see `apps/menu` below and
+> `memory/project_features_batch2.md`. The customer-facing restaurant site and hub landing page have
+> not been built yet — see `memory/restaurant_expansion_roadmap.md` for the plan.
+
 ---
 
 ## Tech Stack
@@ -29,12 +35,13 @@ Mary Kitchen/
 │   │   └── settings/          # base / development / production
 │   ├── apps/
 │   │   ├── users/             # Custom user model, JWT, OTP, addresses, wishlist
-│   │   ├── products/          # Products, variants, dynamic attributes, categories
-│   │   ├── cart/              # Persistent DB-backed cart
-│   │   ├── delivery/          # Delivery zones & fee calculation (Darwin-centric)
-│   │   ├── orders/            # Orders, status flow, history
+│   │   ├── products/          # Products, variants, dynamic attributes, categories (grocery catalogue)
+│   │   ├── menu/               # Menu categories, dishes, modifier groups (restaurant catalogue)
+│   │   ├── cart/              # Persistent DB-backed cart, one per (user, channel)
+│   │   ├── delivery/          # Delivery zones & fee calculation (Darwin-centric), shared by both channels
+│   │   ├── orders/            # Orders, status flow, history — channel field serves both storefronts
 │   │   ├── payments/          # Stripe PaymentIntents & webhooks
-│   │   ├── reviews/           # Star ratings + admin moderation
+│   │   ├── reviews/           # Star ratings + admin moderation (grocery products so far)
 │   │   └── notifications/     # Email, SMS (Twilio placeholder), in-app
 │   └── core/                  # Pagination, permissions, mixins, exceptions
 ├── frontend/                  # Next.js 14 App Router
@@ -137,9 +144,11 @@ Once the backend is running:
 | `GET /api/v1/products/` | Product list (filterable) |
 | `GET /api/v1/products/featured/` | Featured products |
 | `GET /api/v1/products/categories/` | Category tree |
-| `GET /api/v1/cart/` | View cart |
-| `POST /api/v1/cart/add/` | Add to cart |
-| `POST /api/v1/orders/checkout/` | Create order |
+| `GET /api/v1/menu/` | Restaurant menu items (filterable) |
+| `GET /api/v1/menu/categories/` | Menu category list |
+| `GET /api/v1/cart/?channel=grocery\|restaurant` | View cart for a channel (defaults to grocery) |
+| `POST /api/v1/cart/add/` | Add to cart — `{product_id, variant_id}` or `{menu_item_id, modifier_ids}` |
+| `POST /api/v1/orders/checkout/` | Create order — pass `channel: "restaurant"` for a menu order |
 | `POST /api/v1/payments/create-intent/` | Stripe PaymentIntent |
 | `POST /api/v1/payments/webhook/` | Stripe webhook |
 | `GET /api/v1/orders/` | Order history |
@@ -162,9 +171,15 @@ Product
  └── ProductVariant (SKU, price, stock)
  └── attributes (JSONField for dynamic attrs)
 
-Cart → CartItem → Product / ProductVariant
+MenuCategory
+MenuItem (is_active + daily is_available toggle, no stock quantity)
+ └── MenuItemImage (multiple, primary flag)
+ └── ModifierGroup (e.g. "Choose your size" — single/multiple, required/min/max)
+     └── Modifier (one option, own price_delta)
 
-Order → OrderItem
+Cart (one per user+channel) → CartItem → Product/ProductVariant OR MenuItem + selected_modifiers
+
+Order (channel: grocery | restaurant) → OrderItem (product OR menu_item + selected_modifiers)
  └── OrderStatusHistory (full audit trail)
  └── delivery_address (JSON snapshot)
 

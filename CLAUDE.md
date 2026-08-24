@@ -6,6 +6,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Mary Kitchen is a full-stack grocery e-commerce platform for Darwin, NT, Australia. It has a Django REST Framework backend and a Next.js 14 frontend, connected via a versioned REST API.
 
+**In progress:** a second storefront, "Mary Ben's Kitchen Restaurant", is being added alongside the grocery
+shop on the same backend/frontend — one login, one admin console, both reachable from a shared landing page
+at the root domain. The backend foundation (new `apps.menu` domain + a unified order/cart pipeline that
+serves both channels) shipped and has been verified twice (migrations apply cleanly, `makemigrations
+--check` is clean, end-to-end smoke tests pass) — see `memory/project_features_batch2.md`. Every
+`Order`/`Cart`/`OrderItem`/`CartItem` now carries a `channel` (`"grocery"` | `"restaurant"`) — read that
+file before touching checkout, cart, or order code.
+
+**Resuming this work in a new session:** the frontend (hub page, restaurant storefront, admin menu screens
+— Phases 3-6) has not been built yet. Start at `memory/restaurant_expansion_roadmap.md` — it has the
+locked product decisions, the exact current frontend route structure, and a concrete step-by-step plan for
+each remaining phase. One manual prerequisite before starting: the two new migrations
+(`cart/0003_...`, `orders/0008_...`, plus `menu/0001_initial`) need to be applied with
+`python manage.py migrate` — as of 2026-08-24 this has been verified in a sandbox but not yet run against
+the real development database.
+
 ## Development Commands
 
 ### Backend
@@ -47,13 +63,14 @@ docker-compose up --build
 
 **Apps** (`backend/apps/`):
 - `users` — custom email-based `User` model (extends `AbstractBaseUser`), JWT auth via SimpleJWT, OTP system (email verification, login, password reset), addresses, wishlist
-- `products` — `Category` (nested tree), `Product`, `ProductVariant`, `ProductImage`, dynamic per-category `AttributeDefinition` with `JSONField` attributes on products
-- `cart` — DB-backed persistent cart with `CartItem`
-- `orders` — `Order` with full status flow (`pending → confirmed → processing → out_for_delivery → delivered / cancelled / refunded`), `OrderItem`, `OrderStatusHistory` audit trail, delivery address stored as JSON snapshot
+- `products` — `Category` (nested tree), `Product`, `ProductVariant`, `ProductImage`, dynamic per-category `AttributeDefinition` with `JSONField` attributes on products — the **grocery** catalogue
+- `menu` — `MenuCategory`, `MenuItem` (`is_active` = permanently on the menu, `is_available` = today's 86 list; no stock quantity), `MenuItemImage`, `ModifierGroup`/`Modifier` (per-dish choice groups like size/spice/add-ons, each option with its own `price_delta`) — the **restaurant** catalogue. Deliberately not merged into `products`; see `apps/menu/apps.py::MenuConfig` docstring.
+- `cart` — DB-backed persistent cart, one per `(user, channel)` — `channel` is `"grocery"` or `"restaurant"`. `CartItem` is either a grocery product/variant *or* a menu item + `selected_modifiers` JSON snapshot, never both.
+- `orders` — `Order` with full status flow (`pending → confirmed → processing → out_for_delivery → delivered / cancelled / refunded`), `OrderItem`, `OrderStatusHistory` audit trail, delivery address stored as JSON snapshot. `Order.channel` and `OrderItem.menu_item`/`selected_modifiers` make this one pipeline serve both storefronts — see "Restaurant expansion" below.
 - `payments` — Stripe `PaymentIntent` creation and webhook handling
-- `reviews` — star ratings, only for purchased products, admin moderation
+- `reviews` — star ratings, only for purchased **grocery** products so far, admin moderation
 - `notifications` — in-app and email notifications via Celery tasks; OTP emails, order confirmation with PDF attachment (`reportlab`), order status updates
-- `delivery` — `DeliveryZone` model with distance-based fee calculation using `geopy`; store coordinates from env vars
+- `delivery` — `DeliveryZone` model with distance-based fee calculation using `geopy`; store coordinates from env vars. Shared as-is by restaurant delivery orders — same store location, same zones.
 - `analytics` — sales and order analytics endpoints
 
 **Core** (`backend/core/`):
