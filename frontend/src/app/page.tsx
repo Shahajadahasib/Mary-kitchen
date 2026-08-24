@@ -29,7 +29,9 @@ const STOREFRONTS = [
         // Grocery keeps the established green brand.
         accent: {
             badge: "bg-primary-700 text-white",
-            button: "bg-primary-700 hover:bg-primary-800",
+            // Mobile CTA is plain text; the button background only applies from sm up.
+            cta: "text-primary-700",
+            button: "sm:bg-primary-700 sm:hover:bg-primary-800",
             ring: "focus-visible:ring-primary-400",
         },
     },
@@ -48,7 +50,8 @@ const STOREFRONTS = [
         // Restaurant uses the warm amber brand scale to read as a distinct storefront.
         accent: {
             badge: "bg-brand-600 text-white",
-            button: "bg-brand-600 hover:bg-brand-700",
+            cta: "text-brand-700",
+            button: "sm:bg-brand-600 sm:hover:bg-brand-700",
             ring: "focus-visible:ring-brand-400",
         },
     },
@@ -56,10 +59,10 @@ const STOREFRONTS = [
 
 export default function HubPage() {
     return (
-        <main className="relative min-h-screen overflow-hidden">
+        <main className="relative min-h-dvh overflow-hidden">
             {/* Background photograph */}
             <Image
-                src="/assets/home-bg.jpg"
+                src="/assets/hub-desktop.jpg"
                 alt=""
                 aria-hidden="true"
                 fill
@@ -81,23 +84,23 @@ export default function HubPage() {
                 className="absolute inset-0 bg-gradient-to-b from-gray-950/50 via-transparent to-gray-950/70"
             />
 
-            <div className="relative flex min-h-screen flex-col justify-center px-4 py-16 sm:px-6 sm:py-20">
+            <div className="relative flex min-h-dvh flex-col justify-center px-4 py-10 sm:px-6 sm:py-12 short:py-6">
                 <div className="mx-auto w-full max-w-3xl">
                     <header className="animate-fade-in-up text-center">
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary-300 sm:text-sm">
                             Darwin, Northern Territory
                         </p>
-                        <h1 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+                        <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl short:text-3xl">
                             Mary Ben&apos;s Kitchen
                         </h1>
-                        <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-gray-300 sm:text-base">
+                        <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-gray-300 sm:text-base short:mt-2 short:text-sm">
                             One kitchen, two ways to order. Fill the fridge from
                             our grocery shop, or let us cook for you at the
                             restaurant.
                         </p>
                     </header>
 
-                    <div className="mt-10 grid gap-5 sm:mt-12 sm:grid-cols-2 sm:gap-6">
+                    <div className="mt-8 grid gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-5 short:mt-5">
                         {STOREFRONTS.map((s, i) => {
                             const Icon = s.icon;
                             return (
@@ -108,15 +111,18 @@ export default function HubPage() {
                                         // Stagger the cards in after the heading.
                                         animationDelay: `${120 + i * 110}ms`,
                                     }}
-                                    className={`animate-fade-in-up group flex flex-col overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-white/10 transition-transform duration-300 hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 ${s.accent.ring}`}
+                                    className={`animate-fade-in-up group flex flex-row overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-white/10 transition-transform duration-300 hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 sm:flex-col ${s.accent.ring}`}
                                 >
-                                    {/* Card header image */}
-                                    <div className="relative aspect-[16/10] overflow-hidden">
+                                    {/* Header image. A square thumbnail beside the
+                                        text on phones, a full-width banner from sm
+                                        up — two stacked banner cards do not fit one
+                                        screen on a phone. */}
+                                    <div className="relative aspect-square w-28 shrink-0 overflow-hidden sm:aspect-[16/9] sm:w-auto short:sm:aspect-[16/7]">
                                         <Image
                                             src={s.image}
                                             alt={s.imageAlt}
                                             fill
-                                            sizes="(max-width: 640px) 100vw, 360px"
+                                            sizes="(max-width: 640px) 112px, 360px"
                                             className="object-cover transition-transform duration-500 group-hover:scale-105"
                                         />
                                         <div
@@ -124,7 +130,7 @@ export default function HubPage() {
                                             className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent"
                                         />
                                         <span
-                                            className={`absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${s.accent.badge}`}
+                                            className={`absolute left-3 top-3 hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold sm:inline-flex ${s.accent.badge}`}
                                         >
                                             <Icon
                                                 className="h-3.5 w-3.5"
@@ -135,15 +141,24 @@ export default function HubPage() {
                                     </div>
 
                                     {/* Card body */}
-                                    <div className="flex flex-1 flex-col p-5">
-                                        <h2 className="text-lg font-bold text-gray-900">
+                                    <div className="flex flex-1 flex-col p-4 sm:p-5 short:sm:p-4">
+                                        <span
+                                            className={`mb-1 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold sm:hidden ${s.accent.badge}`}
+                                        >
+                                            <Icon
+                                                className="h-3 w-3"
+                                                aria-hidden="true"
+                                            />
+                                            {s.eyebrow}
+                                        </span>
+                                        <h2 className="text-base font-bold text-gray-900 sm:text-lg">
                                             {s.title}
                                         </h2>
-                                        <p className="mt-1.5 flex-1 text-sm leading-relaxed text-gray-600">
+                                        <p className="mt-1 line-clamp-2 flex-1 text-xs leading-relaxed text-gray-600 sm:mt-1.5 sm:line-clamp-none sm:text-sm">
                                             {s.description}
                                         </p>
                                         <span
-                                            className={`mt-5 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-colors ${s.accent.button}`}
+                                            className={`mt-2 inline-flex w-fit items-center gap-1.5 text-xs font-semibold sm:mt-4 sm:w-auto sm:justify-center sm:gap-2 sm:rounded-lg sm:px-4 sm:py-2.5 sm:text-sm sm:text-white sm:transition-colors ${s.accent.cta} ${s.accent.button}`}
                                         >
                                             {s.cta}
                                             <ArrowRight
@@ -159,7 +174,7 @@ export default function HubPage() {
 
                     <p
                         style={{ animationDelay: "340ms" }}
-                        className="animate-fade-in-up mt-10 text-center text-xs text-gray-300 sm:text-sm"
+                        className="animate-fade-in-up mt-8 text-center text-xs text-gray-300 sm:text-sm short:mt-5"
                     >
                         One account across both.{" "}
                         <Link
