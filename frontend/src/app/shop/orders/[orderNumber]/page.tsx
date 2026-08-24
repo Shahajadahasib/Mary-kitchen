@@ -107,7 +107,7 @@ export default function OrderDetailPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                 <div>
                     <Link
-                        href="/orders"
+                        href="/shop/orders"
                         className="text-sm text-primary-700 hover:underline mb-1 block"
                     >
                         ← Back to Orders

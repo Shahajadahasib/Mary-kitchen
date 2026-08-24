@@ -87,10 +87,10 @@ export default function CheckoutSuccessPage() {
         <h1 className="text-xl font-bold text-gray-900">Could not confirm checkout</h1>
         <p className="text-gray-600 text-sm">{message}</p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-          <Link href="/checkout" className="btn-primary inline-flex justify-center">
+          <Link href="/shop/checkout" className="btn-primary inline-flex justify-center">
             Back to checkout
           </Link>
-          <Link href="/orders" className="btn-secondary inline-flex justify-center">
+          <Link href="/shop/orders" className="btn-secondary inline-flex justify-center">
             View orders
           </Link>
         </div>
@@ -114,7 +114,7 @@ export default function CheckoutSuccessPage() {
         <Link href={orderNumber ? `/orders/${encodeURIComponent(orderNumber)}` : "/orders"} className="btn-primary inline-flex justify-center">
           View order
         </Link>
-        <button type="button" onClick={() => router.push("/products")} className="btn-secondary">
+        <button type="button" onClick={() => router.push("/shop/products")} className="btn-secondary">
           Continue shopping
         </button>
       </div>

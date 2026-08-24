@@ -80,7 +80,7 @@ export default function CartPage() {
                 <h2 className="text-xl font-semibold text-gray-700 mb-2">
                     Your cart is empty
                 </h2>
-                <Link href="/products" className="btn-primary inline-flex mt-4">
+                <Link href="/shop/products" className="btn-primary inline-flex mt-4">
                     Start Shopping
                 </Link>
             </div>
@@ -203,7 +203,7 @@ export default function CartPage() {
                                 {/* Details */}
                                 <div className="flex-1 min-w-0">
                                     <Link
-                                        href={`/products/${item.product_detail?.slug}`}
+                                        href={`/shop/products/${item.product_detail?.slug}`}
                                         className={`font-semibold line-clamp-2 text-sm ${unavailable ? "text-gray-400 pointer-events-none" : "text-gray-900 hover:text-primary-700"}`}
                                     >
                                         {item.product_detail?.name}
@@ -351,7 +351,7 @@ export default function CartPage() {
                             </div>
                         ) : (
                             <Link
-                                href="/checkout"
+                                href="/shop/checkout"
                                 className="btn-primary w-full flex items-center justify-center gap-2"
                             >
                                 {hasInvalid
@@ -361,7 +361,7 @@ export default function CartPage() {
                             </Link>
                         )}
                         <Link
-                            href="/products"
+                            href="/shop/products"
                             className="btn-secondary w-full flex items-center justify-center mt-3 text-sm"
                         >
                             Continue Shopping

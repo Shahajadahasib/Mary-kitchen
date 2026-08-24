@@ -48,13 +48,13 @@ function ProductsPageInner() {
         if (search) newParams.set("search", search);
         else newParams.delete("search");
         newParams.delete("page");
-        router.push(`/products?${newParams.toString()}`);
+        router.push(`/shop/products?${newParams.toString()}`);
     };
 
     const handlePageChange = (page: number) => {
         const newParams = new URLSearchParams(searchParams.toString());
         newParams.set("page", String(page));
-        router.push(`/products?${newParams.toString()}`);
+        router.push(`/shop/products?${newParams.toString()}`);
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
@@ -63,7 +63,7 @@ function ProductsPageInner() {
         if (slug) newParams.set("category", slug);
         else newParams.delete("category");
         newParams.delete("page");
-        router.push(`/products?${newParams.toString()}`);
+        router.push(`/shop/products?${newParams.toString()}`);
     };
 
     return (

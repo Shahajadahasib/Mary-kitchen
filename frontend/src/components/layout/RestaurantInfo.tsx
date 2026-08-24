@@ -132,7 +132,7 @@ export default function RestaurantInfo() {
                 <Phone className="w-4 h-4" /> Call Now
               </a>
               <Link
-                href="/products"
+                href="/shop/products"
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-700 hover:bg-primary-800 text-white rounded-lg font-semibold text-sm transition-all"
               >
                 <ShoppingBag className="w-4 h-4" /> Order Now

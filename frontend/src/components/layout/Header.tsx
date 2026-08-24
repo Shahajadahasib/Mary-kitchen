@@ -139,7 +139,7 @@ export default function Header() {
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         if (search.trim()) {
-            router.push(`/products?search=${encodeURIComponent(search)}`);
+            router.push(`/shop/products?search=${encodeURIComponent(search)}`);
             setSearch("");
             setShowDropdown(false);
             setSearchOpen(false);
@@ -148,7 +148,7 @@ export default function Header() {
     };
 
     const handleSuggestionClick = (item: ProductSuggestion) => {
-        router.push(`/products/${item.slug}`);
+        router.push(`/shop/products/${item.slug}`);
         setSearch("");
         setShowDropdown(false);
         setSearchOpen(false);
@@ -159,7 +159,7 @@ export default function Header() {
         try {
             await logout();
         } finally {
-            router.push("/");
+            router.push("/shop");
         }
     };
 
@@ -174,7 +174,7 @@ export default function Header() {
                     <div className="flex items-center gap-2 sm:gap-4 py-3">
                         {/* Logo */}
                         <Link
-                            href="/"
+                            href="/shop"
                             className="flex items-center gap-2 font-bold text-xl flex-shrink-0"
                         >
                             {storeProfile?.logo_url ? (
@@ -309,7 +309,7 @@ export default function Header() {
 
                             {/* Cart */}
                             <Link
-                                href="/cart"
+                                href="/shop/cart"
                                 className="relative p-2 hover:bg-primary-600 rounded-lg transition-colors"
                             >
                                 <ShoppingCart className="w-6 h-6" />
@@ -323,7 +323,7 @@ export default function Header() {
                             {/* Notifications — hidden on mobile (shown in mobile menu) */}
                             {isAuthenticated && (
                                 <Link
-                                    href="/notifications"
+                                    href="/shop/notifications"
                                     className="relative p-2 hover:bg-primary-600 rounded-lg transition-colors hidden sm:flex"
                                 >
                                     <Bell className="w-6 h-6" />
@@ -357,7 +357,7 @@ export default function Header() {
                                     {userMenuOpen && (
                                         <div className="absolute right-0 top-full mt-1 w-48 bg-white text-gray-700 rounded-xl shadow-xl border border-gray-100 py-1 z-50">
                                             <Link
-                                                href="/profile"
+                                                href="/shop/profile"
                                                 onClick={() =>
                                                     setUserMenuOpen(false)
                                                 }
@@ -367,7 +367,7 @@ export default function Header() {
                                                 Profile
                                             </Link>
                                             <Link
-                                                href="/orders"
+                                                href="/shop/orders"
                                                 onClick={() =>
                                                     setUserMenuOpen(false)
                                                 }
@@ -430,7 +430,7 @@ export default function Header() {
                     <div className="container-xl">
                         <nav className="flex gap-1 py-1 overflow-x-auto">
                             <Link
-                                href="/products"
+                                href="/shop/products"
                                 className="px-3 py-1.5 text-sm text-primary-100 hover:text-white hover:bg-primary-700 rounded-lg transition-colors whitespace-nowrap"
                             >
                                 All Products
@@ -438,14 +438,14 @@ export default function Header() {
                             {navCategories.map((cat) => (
                                 <Link
                                     key={cat.id}
-                                    href={`/products?category=${cat.slug}`}
+                                    href={`/shop/products?category=${cat.slug}`}
                                     className="px-3 py-1.5 text-sm text-primary-100 hover:text-white hover:bg-primary-700 rounded-lg transition-colors whitespace-nowrap"
                                 >
                                     {cat.name}
                                 </Link>
                             ))}
                             <Link
-                                href="/products/deals"
+                                href="/shop/products/deals"
                                 className="px-3 py-1.5 text-sm text-primary-100 hover:text-white hover:bg-primary-700 rounded-lg transition-colors whitespace-nowrap"
                             >
                                 🔥 Deals
@@ -584,7 +584,7 @@ export default function Header() {
                                 Shop
                             </p>
                             <Link
-                                href="/products"
+                                href="/shop/products"
                                 onClick={() => setMenuOpen(false)}
                                 className="flex items-center justify-between px-3 py-2.5 text-primary-100 hover:text-white hover:bg-primary-700 rounded-lg transition-colors"
                             >
@@ -594,7 +594,7 @@ export default function Header() {
                             {navCategories.map((cat) => (
                                 <Link
                                     key={cat.id}
-                                    href={`/products?category=${cat.slug}`}
+                                    href={`/shop/products?category=${cat.slug}`}
                                     onClick={() => setMenuOpen(false)}
                                     className="flex items-center justify-between px-3 py-2.5 text-primary-100 hover:text-white hover:bg-primary-700 rounded-lg transition-colors"
                                 >
@@ -603,7 +603,7 @@ export default function Header() {
                                 </Link>
                             ))}
                             <Link
-                                href="/products/deals"
+                                href="/shop/products/deals"
                                 onClick={() => setMenuOpen(false)}
                                 className="flex items-center justify-between px-3 py-2.5 text-primary-100 hover:text-white hover:bg-primary-700 rounded-lg transition-colors"
                             >
@@ -617,7 +617,7 @@ export default function Header() {
                                         Account
                                     </p>
                                     <Link
-                                        href="/profile"
+                                        href="/shop/profile"
                                         onClick={() => setMenuOpen(false)}
                                         className="flex items-center justify-between px-3 py-2.5 text-primary-100 hover:text-white hover:bg-primary-700 rounded-lg transition-colors"
                                     >
@@ -628,7 +628,7 @@ export default function Header() {
                                         <ChevronRight className="w-4 h-4" />
                                     </Link>
                                     <Link
-                                        href="/orders"
+                                        href="/shop/orders"
                                         onClick={() => setMenuOpen(false)}
                                         className="flex items-center justify-between px-3 py-2.5 text-primary-100 hover:text-white hover:bg-primary-700 rounded-lg transition-colors"
                                     >
@@ -639,7 +639,7 @@ export default function Header() {
                                         <ChevronRight className="w-4 h-4" />
                                     </Link>
                                     <Link
-                                        href="/notifications"
+                                        href="/shop/notifications"
                                         onClick={() => setMenuOpen(false)}
                                         className="flex items-center justify-between px-3 py-2.5 text-primary-100 hover:text-white hover:bg-primary-700 rounded-lg transition-colors"
                                     >

@@ -19,7 +19,7 @@ export default function CategoryCard({ category }: CategoryCardProps) {
 
     return (
         <Link
-            href={`/products?category=${category.slug}`}
+            href={`/shop/products?category=${category.slug}`}
             className="flex flex-col items-center gap-2 group cursor-pointer"
         >
             <div className="w-full aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-primary-100 to-primary-50 border border-primary-100 group-hover:shadow-md transition-shadow">

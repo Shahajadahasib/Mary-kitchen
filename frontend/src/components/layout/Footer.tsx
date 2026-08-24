@@ -7,11 +7,11 @@ import Link from "next/link";
 import { FaFacebook, FaGlobe, FaInstagram } from "react-icons/fa6";
 
 const SHOP_LINKS = [
-    { label: "All Products", href: "/products" },
-    { label: "Fish & Seafood", href: "/products?category=fish-seafood" },
-    { label: "Meat & Poultry", href: "/products?category=meat-poultry" },
-    { label: "Vegetables", href: "/products?category=vegetables" },
-    { label: "Rice & Grains", href: "/products?category=rice-grains" },
+    { label: "All Products", href: "/shop/products" },
+    { label: "Fish & Seafood", href: "/shop/products?category=fish-seafood" },
+    { label: "Meat & Poultry", href: "/shop/products?category=meat-poultry" },
+    { label: "Vegetables", href: "/shop/products?category=vegetables" },
+    { label: "Rice & Grains", href: "/shop/products?category=rice-grains" },
 ];
 
 const ACCOUNT_LINKS_GUEST = [
@@ -20,16 +20,16 @@ const ACCOUNT_LINKS_GUEST = [
 ];
 
 const ACCOUNT_LINKS_AUTH = [
-    { label: "My Orders", href: "/orders" },
-    { label: "My Profile", href: "/profile" },
+    { label: "My Orders", href: "/shop/orders" },
+    { label: "My Profile", href: "/shop/profile" },
 ];
 
 const INFO_LINKS = [
-    { label: "About Us", href: "/about" },
-    { label: "Delivery Info", href: "/delivery" },
-    { label: "Privacy Policy", href: "/privacy" },
-    { label: "Terms of Service", href: "/terms" },
-    { label: "Contact Us", href: "/contact" },
+    { label: "About Us", href: "/shop/about" },
+    { label: "Delivery Info", href: "/shop/delivery" },
+    { label: "Privacy Policy", href: "/shop/privacy" },
+    { label: "Terms of Service", href: "/shop/terms" },
+    { label: "Contact Us", href: "/shop/contact" },
 ];
 
 function safeHref(url: string): string | undefined {
@@ -83,7 +83,7 @@ export default function Footer() {
                     {/* Column 1 — Brand — full width on mobile */}
                     <div className="sm:col-span-2 md:col-span-1">
                         <Link
-                            href="/"
+                            href="/shop"
                             className="flex items-center gap-2 text-white font-bold text-xl mb-3"
                         >
                             <ShoppingBag className="w-6 h-6 text-primary-400" />

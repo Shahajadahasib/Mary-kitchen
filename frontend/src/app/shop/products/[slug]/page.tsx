@@ -121,21 +121,21 @@ export default function ProductDetailPage() {
             {/* Breadcrumb */}
             <nav className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-500 mb-4 md:mb-6 overflow-x-auto">
                 <Link
-                    href="/"
+                    href="/shop"
                     className="hover:text-primary-700 whitespace-nowrap"
                 >
                     Home
                 </Link>
                 <ChevronRight className="w-3 h-3 flex-shrink-0" />
                 <Link
-                    href="/products"
+                    href="/shop/products"
                     className="hover:text-primary-700 whitespace-nowrap"
                 >
                     Products
                 </Link>
                 <ChevronRight className="w-3 h-3 flex-shrink-0" />
                 <Link
-                    href={`/products?category=${product.category?.slug}`}
+                    href={`/shop/products?category=${product.category?.slug}`}
                     className="hover:text-primary-700 whitespace-nowrap hidden sm:block"
                 >
                     {product.category?.name}

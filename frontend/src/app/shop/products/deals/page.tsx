@@ -56,13 +56,13 @@ function DealsPageInner() {
     if (search) newParams.set("search", search);
     else newParams.delete("search");
     newParams.delete("page");
-    router.push(`/products/deals?${newParams.toString()}`);
+    router.push(`/shop/products/deals?${newParams.toString()}`);
   };
 
   const handlePageChange = (page: number) => {
     const newParams = new URLSearchParams(searchParams.toString());
     newParams.set("page", String(page));
-    router.push(`/products/deals?${newParams.toString()}`);
+    router.push(`/shop/products/deals?${newParams.toString()}`);
   };
 
   const setCategoryFilter = (slug: string) => {
@@ -70,7 +70,7 @@ function DealsPageInner() {
     if (slug) newParams.set("category", slug);
     else newParams.delete("category");
     newParams.delete("page");
-    router.push(`/products/deals?${newParams.toString()}`);
+    router.push(`/shop/products/deals?${newParams.toString()}`);
   };
 
   return (
@@ -86,7 +86,7 @@ function DealsPageInner() {
             Products with an active discount — compare at the crossed-out price, pay the sale price.
           </p>
         </div>
-        <Link href="/products" className="text-sm text-primary-700 hover:underline font-medium self-start sm:self-auto">
+        <Link href="/shop/products" className="text-sm text-primary-700 hover:underline font-medium self-start sm:self-auto">
           Browse all products
         </Link>
       </div>
@@ -122,7 +122,7 @@ function DealsPageInner() {
       <div className="flex gap-6">
         {showFilters && (
           <div className="w-64 flex-shrink-0">
-            <ProductFilters basePath="/products/deals" />
+            <ProductFilters basePath="/shop/products/deals" />
           </div>
         )}
 
@@ -155,7 +155,7 @@ function DealsPageInner() {
               <Tag className="w-12 h-12 mx-auto mb-4 opacity-40" />
               <p className="text-lg font-medium">No deals right now</p>
               <p className="text-sm">Check back soon — or browse all products.</p>
-              <Link href="/products" className="btn-primary inline-flex mt-6">All products</Link>
+              <Link href="/shop/products" className="btn-primary inline-flex mt-6">All products</Link>
             </div>
           ) : (
             <>

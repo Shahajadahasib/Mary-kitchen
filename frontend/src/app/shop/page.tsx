@@ -42,7 +42,7 @@ export default function HomePage() {
                         Shop by Category
                     </h2>
                     <Link
-                        href="/products"
+                        href="/shop/products"
                         className="text-primary-700 hover:underline text-sm font-medium"
                     >
                         View all
@@ -77,7 +77,7 @@ export default function HomePage() {
                                 Featured Products
                             </h2>
                             <Link
-                                href="/products?is_featured=true"
+                                href="/shop/products?is_featured=true"
                                 className="text-primary-700 hover:underline text-sm font-medium"
                             >
                                 View all
@@ -101,7 +101,7 @@ export default function HomePage() {
                         All Products
                     </h2>
                     <Link
-                        href="/products"
+                        href="/shop/products"
                         className="text-primary-700 hover:underline text-sm font-medium"
                     >
                         View all

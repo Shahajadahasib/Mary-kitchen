@@ -115,7 +115,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
     return (
         <Link
-            href={`/products/${product.slug}`}
+            href={`/shop/products/${product.slug}`}
             className="card group flex flex-col"
         >
             {/* Image */}

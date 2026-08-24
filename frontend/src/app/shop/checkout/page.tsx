@@ -731,7 +731,7 @@ export default function CheckoutPage() {
                         {!canCheckout ? (
                             <div className="text-center">
                                 <button
-                                    onClick={() => router.push("/cart")}
+                                    onClick={() => router.push("/shop/cart")}
                                     className="btn-secondary w-full"
                                 >
                                     Back to Cart

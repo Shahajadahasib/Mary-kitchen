@@ -353,7 +353,7 @@ export default function ProfilePage() {
                             <Heart className="w-12 h-12 mx-auto mb-3 opacity-40" />
                             <p>Your wishlist is empty</p>
                             <Link
-                                href="/products"
+                                href="/shop/products"
                                 className="btn-primary inline-flex mt-4 text-sm"
                             >
                                 Browse Products
@@ -364,7 +364,7 @@ export default function ProfilePage() {
                             {wishlist?.items?.map((item: any) => (
                                 <Link
                                     key={item.id}
-                                    href={`/products/${item.product_slug}`}
+                                    href={`/shop/products/${item.product_slug}`}
                                     className="card p-4 hover:shadow-md"
                                 >
                                     <p className="font-medium text-sm text-gray-900 line-clamp-2 mb-1">
@@ -387,7 +387,7 @@ export default function ProfilePage() {
                     <p className="text-gray-500 mb-4">
                         View your complete order history
                     </p>
-                    <Link href="/orders" className="btn-primary inline-flex">
+                    <Link href="/shop/orders" className="btn-primary inline-flex">
                         Go to Orders
                     </Link>
                 </div>

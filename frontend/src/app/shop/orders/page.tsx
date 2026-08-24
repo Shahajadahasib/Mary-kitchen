@@ -35,7 +35,7 @@ export default function OrdersPage() {
                 <h2 className="text-xl font-semibold text-gray-700 mb-2">
                     No orders yet
                 </h2>
-                <Link href="/products" className="btn-primary inline-flex mt-4">
+                <Link href="/shop/products" className="btn-primary inline-flex mt-4">
                     Start Shopping
                 </Link>
             </div>
@@ -48,7 +48,7 @@ export default function OrdersPage() {
                 {orders.map((order: any) => (
                     <Link
                         key={order.id}
-                        href={`/orders/${order.order_number}`}
+                        href={`/shop/orders/${order.order_number}`}
                         className="card p-4 sm:p-5 block hover:shadow-md transition-shadow"
                     >
                         <div className="flex items-start justify-between gap-3 mb-3">

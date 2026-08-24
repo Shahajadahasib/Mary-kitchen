@@ -4,11 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 
 type ProductFiltersProps = {
-  /** Base path for filter navigation (e.g. `/products` or `/products/deals`). */
+  /** Base path for filter navigation (e.g. `/shop/products` or `/shop/products/deals`). */
   basePath?: string;
 };
 
-export default function ProductFilters({ basePath = "/products" }: ProductFiltersProps) {
+export default function ProductFilters({ basePath = "/shop/products" }: ProductFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 

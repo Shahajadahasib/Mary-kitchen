@@ -178,7 +178,7 @@ export default function DeliveryPage() {
                 <div className="text-center">
                     <p className="text-gray-500 mb-4">Ready to order?</p>
                     <Link
-                        href="/products"
+                        href="/shop/products"
                         className="btn-primary inline-flex items-center gap-2"
                     >
                         <Truck className="w-4 h-4" /> Shop Now
