@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChefHat, ShoppingBag, ShoppingBasket } from "lucide-react";
 import { useEffect } from "react";
+import Footer from "@/components/layout/Footer";
 import ScrollToTop from "@/components/layout/ScrollToTop";
 import { authHref } from "@/lib/authRedirect";
-import { useStoreProfile } from "@/hooks/useStoreProfile";
 import { useAuthStore } from "@/store/authStore";
 import { useRestaurantCart } from "@/store/cartStore";
 
@@ -24,7 +24,6 @@ export default function RestaurantShell({
 }: {
     children: React.ReactNode;
 }) {
-    const { data: store } = useStoreProfile();
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const hasHydrated = useAuthStore((s) => s.hasHydrated);
     const pathname = usePathname();
@@ -106,36 +105,7 @@ export default function RestaurantShell({
 
             <main className="flex-1">{children}</main>
 
-            <footer className="bg-gray-900 text-gray-400 text-sm">
-                <div className="container-xl py-8 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-                    <p>
-                        {store?.name || "Mary Ben's Kitchen"}
-                        {store?.address ? ` — ${store.address}` : ""}
-                        {store?.suburb ? `, ${store.suburb}` : ""}
-                        {store?.state ? ` ${store.state}` : ""}
-                    </p>
-                    <nav className="sm:ml-auto flex flex-wrap gap-4">
-                        <Link href="/" className="hover:text-white transition-colors">
-                            Home
-                        </Link>
-                        <Link href="/shop" className="hover:text-white transition-colors">
-                            Grocery shop
-                        </Link>
-                        <Link
-                            href="/shop/delivery"
-                            className="hover:text-white transition-colors"
-                        >
-                            Delivery info
-                        </Link>
-                        <Link
-                            href="/shop/contact"
-                            className="hover:text-white transition-colors"
-                        >
-                            Contact
-                        </Link>
-                    </nav>
-                </div>
-            </footer>
+            <Footer channel="restaurant" />
         </div>
     );
 }

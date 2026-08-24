@@ -193,7 +193,22 @@ function ProductsPageInner() {
 
 export default function ProductsPage() {
     return (
-        <Suspense
+        <div>
+            {/* Outside the Suspense boundary so the heading and Darwin-local
+                copy are in the server-rendered HTML — ProductsPageInner uses
+                useSearchParams and therefore suspends during SSR. */}
+            <header className="container-xl px-4 pt-6 md:pt-8">
+                <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+                    Fresh Groceries Delivered in Darwin NT
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-600">
+                    Fresh fish and seafood, meat and poultry, vegetables, rice,
+                    grains and African grocery staples — delivered across Darwin,
+                    Winnellie, Palmerston, Casuarina, Nightcliff and Stuart Park.
+                </p>
+            </header>
+
+            <Suspense
             fallback={
                 <div className="container-xl py-8">
                     {/* Search bar skeleton */}
@@ -212,7 +227,8 @@ export default function ProductsPage() {
                 </div>
             }
         >
-            <ProductsPageInner />
-        </Suspense>
+                <ProductsPageInner />
+            </Suspense>
+        </div>
     );
 }

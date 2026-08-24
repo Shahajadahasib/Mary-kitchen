@@ -69,15 +69,6 @@ function MenuBrowse() {
 
     return (
         <div className="container-xl px-4 py-6 md:py-8">
-            <header className="mb-6">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    Our menu
-                </h1>
-                <p className="mt-1 text-sm text-gray-600">
-                    Cooked to order for takeaway or delivery across Darwin.
-                </p>
-            </header>
-
             <form onSubmit={handleSearch} className="flex gap-2 mb-4">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -203,20 +194,37 @@ function MenuBrowse() {
 
 export default function RestaurantMenuPage() {
     return (
-        <Suspense
-            fallback={
-                <div className="container-xl px-4 py-8">
-                    <Skeleton className="h-9 w-48 rounded-lg mb-6" />
-                    <Skeleton className="h-10 w-full rounded-lg mb-6" />
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                        {Array.from({ length: 8 }).map((_, i) => (
-                            <Skeleton key={i} className="h-64 rounded-xl" />
-                        ))}
+        <div>
+            {/* Rendered outside the Suspense boundary on purpose. MenuBrowse
+                uses useSearchParams, so it suspends during SSR and only the
+                skeleton reaches the initial HTML — a crawler that does not run
+                JavaScript would otherwise see no heading and no copy at all. */}
+            <header className="container-xl px-4 pt-6 md:pt-8">
+                <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+                    Restaurant Menu — Takeaway &amp; Delivery in Darwin NT
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-600">
+                    Home-style meals cooked to order at Mary Ben&apos;s Kitchen in
+                    Winnellie. Collect from the kitchen or have it delivered across
+                    Darwin, Palmerston, Casuarina, Nightcliff and the northern
+                    suburbs.
+                </p>
+            </header>
+
+            <Suspense
+                fallback={
+                    <div className="container-xl px-4 py-8">
+                        <Skeleton className="mb-6 h-10 w-full rounded-lg" />
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                            {Array.from({ length: 8 }).map((_, i) => (
+                                <Skeleton key={i} className="h-64 rounded-xl" />
+                            ))}
+                        </div>
                     </div>
-                </div>
-            }
-        >
-            <MenuBrowse />
-        </Suspense>
+                }
+            >
+                <MenuBrowse />
+            </Suspense>
+        </div>
     );
 }

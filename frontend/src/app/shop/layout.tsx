@@ -1,70 +1,67 @@
-"use client";
-import VisitTracker from "@/components/analytics/VisitTracker";
-import Footer from "@/components/layout/Footer";
-import Header from "@/components/layout/Header";
-import ScrollToTop from "@/components/layout/ScrollToTop";
-import { useEffect, useState } from "react";
+import type { Metadata } from "next";
+import ShopShell from "@/components/layout/ShopShell";
+import JsonLd from "@/components/seo/JsonLd";
+import { grocerySchema } from "@/lib/schema";
+import { canonical } from "@/lib/seo";
 
-function SessionExpiredToast({ onClose }: { onClose: () => void }) {
-    return (
-        <div className="fixed top-4 right-4 z-50 bg-red-600 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in">
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 shrink-0"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-            >
-                <path
-                    fillRule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                />
-            </svg>
-            <div>
-                <p className="font-semibold">Session Expired</p>
-                <p className="text-sm opacity-90">
-                    You have been logged out. Redirecting to home...
-                </p>
-            </div>
-            <button
-                onClick={onClose}
-                className="ml-2 opacity-70 hover:opacity-100"
-            >
-                ✕
-            </button>
-        </div>
-    );
-}
+/**
+ * Server layout for the grocery storefront — owns the segment's metadata and
+ * the `GroceryStore` structured data that used to sit in the root layout (and
+ * therefore leaked onto restaurant pages). The chrome itself needs hooks, so it
+ * lives in the client `ShopShell`.
+ */
+export const metadata: Metadata = {
+    title: {
+        // `absolute` so the root layout's "| Mary Ben's Kitchen Darwin" suffix
+        // is not appended to a title that already carries the brand.
+        absolute: "Fresh Groceries Delivered in Darwin NT | Mary Ben's Kitchen",
+        template: "%s | Mary Ben's Kitchen Grocery",
+    },
+    description:
+        "Order fresh fish, seafood, meat, vegetables, rice and African grocery staples online. Same-day and next-day delivery across Darwin NT, Palmerston, Casuarina and Nightcliff.",
+    keywords: [
+        "grocery delivery Darwin",
+        "grocery delivery Darwin NT",
+        "online grocery Darwin",
+        "Darwin grocery store",
+        "fresh fish Darwin",
+        "fresh fish delivery Darwin",
+        "fresh meat Darwin NT",
+        "vegetables Darwin",
+        "African food Darwin",
+        "African grocery Darwin NT",
+        "rice delivery Darwin",
+        "seafood Darwin NT",
+        "grocery delivery Winnellie",
+        "grocery delivery Palmerston",
+        "grocery delivery Casuarina",
+        "grocery delivery Nightcliff",
+        "grocery delivery Stuart Park",
+        "same day grocery delivery Darwin",
+        "Marybens Kitchen",
+        "Mary Bens Kitchen Darwin",
+    ],
+    alternates: { canonical: canonical("/shop") },
+    openGraph: {
+        type: "website",
+        url: canonical("/shop"),
+        siteName: "Mary Ben's Kitchen",
+        title: "Grocery Shop | Fresh Groceries Delivered in Darwin NT",
+        description:
+            "Fresh fish, meat, vegetables and pantry staples delivered across Darwin NT.",
+    },
+    category: "grocery",
+};
 
 export default function ShopLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const [showSessionExpired, setShowSessionExpired] = useState(false);
-
-    useEffect(() => {
-        const handleSessionExpired = () => {
-            setShowSessionExpired(true);
-            setTimeout(() => setShowSessionExpired(false), 3000);
-        };
-        window.addEventListener("session-expired", handleSessionExpired);
-        return () =>
-            window.removeEventListener("session-expired", handleSessionExpired);
-    }, []);
-
     return (
-        <div className="min-h-screen flex flex-col">
-            <ScrollToTop />
-            <VisitTracker />
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-            {showSessionExpired && (
-                <SessionExpiredToast
-                    onClose={() => setShowSessionExpired(false)}
-                />
-            )}
-        </div>
+        <>
+            <JsonLd data={grocerySchema()} />
+            <ShopShell>{children}</ShopShell>
+        </>
     );
 }

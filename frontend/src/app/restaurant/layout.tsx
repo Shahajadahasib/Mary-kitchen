@@ -1,30 +1,50 @@
 import type { Metadata } from "next";
 import RestaurantShell from "@/components/layout/RestaurantShell";
+import JsonLd from "@/components/seo/JsonLd";
+import { restaurantSchema } from "@/lib/schema";
+import { canonical } from "@/lib/seo";
 
 /**
- * Server layout for the restaurant storefront — exists to own the segment's
- * metadata. The chrome itself needs hooks (auth state, StoreProfile), so it
- * lives in the client `RestaurantShell`.
+ * Server layout for the restaurant storefront — owns the segment's metadata and
+ * its `Restaurant` structured data. Before this, every restaurant page inherited
+ * the root layout's `GroceryStore` schema and grocery keywords, so the
+ * restaurant was invisible as a restaurant to search engines.
  */
 export const metadata: Metadata = {
     title: {
-        default: "Mary Ben's Kitchen Restaurant | Takeaway & Delivery Darwin NT",
+        absolute:
+            "Mary Ben's Kitchen Restaurant | Takeaway & Delivery Darwin NT",
         template: "%s | Mary Ben's Kitchen Restaurant",
     },
     description:
-        "Home-style cooked meals from Mary Ben's Kitchen Restaurant in Darwin NT. Order online for takeaway or delivery.",
-    alternates: {
-        canonical: "https://marybenskitchen.com/restaurant",
-    },
+        "Home-style cooked meals made to order in Darwin NT. Order online for takeaway from Winnellie or delivery across Darwin, Palmerston and the northern suburbs.",
+    keywords: [
+        "restaurant Darwin NT",
+        "takeaway Darwin",
+        "food delivery Darwin NT",
+        "African restaurant Darwin",
+        "African food Darwin",
+        "home style meals Darwin",
+        "order food online Darwin",
+        "takeaway Winnellie",
+        "food delivery Palmerston",
+        "food delivery Casuarina",
+        "food delivery Nightcliff",
+        "halal food Darwin",
+        "vegetarian food Darwin NT",
+        "Mary Bens Kitchen Restaurant",
+    ],
+    alternates: { canonical: canonical("/restaurant") },
     openGraph: {
         type: "website",
         locale: "en_AU",
-        url: "https://marybenskitchen.com/restaurant",
+        url: canonical("/restaurant"),
         siteName: "Mary Ben's Kitchen Restaurant",
         title: "Mary Ben's Kitchen Restaurant | Darwin NT",
         description:
             "Home-style cooked meals for takeaway or delivery across Darwin NT.",
     },
+    category: "restaurant",
 };
 
 export default function RestaurantLayout({
@@ -32,5 +52,10 @@ export default function RestaurantLayout({
 }: {
     children: React.ReactNode;
 }) {
-    return <RestaurantShell>{children}</RestaurantShell>;
+    return (
+        <>
+            <JsonLd data={restaurantSchema()} />
+            <RestaurantShell>{children}</RestaurantShell>
+        </>
+    );
 }

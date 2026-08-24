@@ -17,6 +17,7 @@ import {
     ShoppingBag,
     ShoppingCart,
     User,
+    UtensilsCrossed,
     X,
 } from "lucide-react";
 import Image from "next/image";
@@ -453,6 +454,17 @@ export default function Header() {
                             >
                                 🔥 Deals
                             </Link>
+
+                            {/* Cross-link to the other storefront — the
+                                reciprocal of the "Grocery shop" link the
+                                restaurant header already carries. */}
+                            <Link
+                                href="/restaurant"
+                                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors whitespace-nowrap"
+                            >
+                                <UtensilsCrossed className="w-4 h-4" aria-hidden="true" />
+                                Restaurant Menu
+                            </Link>
                         </nav>
                     </div>
                 </div>
@@ -611,6 +623,19 @@ export default function Header() {
                                 className="flex items-center justify-between px-3 py-2.5 text-primary-100 hover:text-white hover:bg-primary-700 rounded-lg transition-colors"
                             >
                                 🔥 Deals <ChevronRight className="w-4 h-4" />
+                            </Link>
+
+                            {/* Cross-link to the restaurant storefront */}
+                            <Link
+                                href="/restaurant"
+                                onClick={() => setMenuOpen(false)}
+                                className="mt-2 flex items-center justify-between rounded-lg bg-brand-600 px-3 py-2.5 font-medium text-white transition-colors hover:bg-brand-700"
+                            >
+                                <span className="flex items-center gap-2">
+                                    <UtensilsCrossed className="w-4 h-4" aria-hidden="true" />
+                                    Restaurant Menu
+                                </span>
+                                <ChevronRight className="w-4 h-4" />
                             </Link>
 
                             {/* Account links */}

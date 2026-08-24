@@ -5,7 +5,7 @@ export const metadata: Metadata = {
     description:
         "Fast grocery delivery across Darwin NT. We deliver to Winnellie, Palmerston, Casuarina, Nightcliff, Stuart Park and surrounding areas. Same day and next day delivery available.",
     alternates: {
-        canonical: "https://marybenskitchen.com/delivery",
+        canonical: "https://marybenskitchen.com/shop/delivery",
     },
 };
 
