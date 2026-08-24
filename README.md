@@ -3,11 +3,11 @@
 
 A full-stack grocery marketplace built for **Darwin, NT, Australia** — featuring fresh fish, meats, vegetables, grains and more.
 
-> 🚧 **In progress:** a second storefront, "Mary Ben's Kitchen Restaurant", is being added alongside
-> the grocery shop, sharing one backend, one login, and one admin console. The backend foundation
-> (menu catalogue, unified order/cart pipeline) has shipped — see `apps/menu` below and
-> `memory/project_features_batch2.md`. The customer-facing restaurant site and hub landing page have
-> not been built yet — see `memory/restaurant_expansion_roadmap.md` for the plan.
+> 🚧 **In progress:** a second storefront, "Mary Ben's Kitchen Restaurant", runs alongside the grocery
+> shop, sharing one backend, one login, and one admin console. The backend foundation (menu catalogue,
+> unified order/cart pipeline), the hub landing page at `/`, and the customer-facing restaurant
+> storefront at `/restaurant` have all shipped — the grocery shop now lives at `/shop`. What remains is
+> admin menu-management screens and polish; see `memory/restaurant_expansion_roadmap.md` for the plan.
 
 ---
 
@@ -42,23 +42,203 @@ Mary Kitchen/
 │   │   ├── orders/            # Orders, status flow, history — channel field serves both storefronts
 │   │   ├── payments/          # Stripe PaymentIntents & webhooks
 │   │   ├── reviews/           # Star ratings + admin moderation (grocery products so far)
-│   │   └── notifications/     # Email, SMS (Twilio placeholder), in-app
+│   │   ├── notifications/     # Email, SMS (Twilio placeholder), in-app
+│   │   ├── analytics/         # Sales & order analytics endpoints
+│   │   ├── banners/           # Promotional banners
+│   │   └── store/             # Store profile & opening hours
 │   └── core/                  # Pagination, permissions, mixins, exceptions
 ├── frontend/                  # Next.js 14 App Router
 │   └── src/
 │       ├── app/
-│       │   ├── (shop)/        # Public-facing shop pages
-│       │   └── (admin)/       # Admin dashboard pages
+│       │   ├── page.tsx       # Hub landing page — one card per storefront
+│       │   ├── shop/          # Grocery storefront
+│       │   ├── restaurant/    # Restaurant storefront
+│       │   ├── (admin)/       # Admin dashboard pages
+│       │   └── login, register, verify-email, forgot-password  # shared by both
 │       ├── components/        # Reusable UI components
-│       ├── store/             # Zustand global state (auth + cart)
+│       ├── store/             # Zustand global state (auth + cart, one per channel)
 │       └── lib/               # Axios API client, utilities
-├── docker-compose.yml         # Full-stack Docker setup
-└── setup.sh                   # One-command dev setup script
+├── docker-compose.yml         # Full-stack Docker setup — serves both local dev and the VPS
+├── .env.example               # Compose-level overrides that switch that file to local mode
+└── setup.sh                   # One-command non-Docker dev setup script
 ```
 
 ---
 
-## Quick Start
+## Running Locally with Docker (recommended)
+
+Docker is the shortest path to a working local copy: you do not need Python, Node, PostgreSQL or
+Redis installed on your machine — only Docker Desktop.
+
+### 1. Install Docker Desktop
+
+**Windows** (PowerShell):
+```powershell
+winget install --id Docker.DockerDesktop --exact
+```
+
+**macOS**:
+```bash
+brew install --cask docker
+```
+
+Or download the installer from <https://www.docker.com/products/docker-desktop/>.
+
+On Windows the installer needs to elevate (approve the UAC prompt) and requires **WSL 2** with
+hardware virtualization enabled in the BIOS. Docker Desktop ships its own WSL distributions, so you
+do **not** need to install Ubuntu or any other distro yourself. A reboot is usually required to
+finish setup.
+
+Then **launch Docker Desktop once** from the Start menu, accept the service agreement, and wait for
+the whale icon in the system tray to report *Engine running*. Signing in to a Docker account is not
+required. Verify from a **new** terminal (the installer adds Docker to `PATH`):
+
+```bash
+docker --version
+docker compose version
+```
+
+### 2. Create the two env files
+
+There are two, and they do different jobs:
+
+```bash
+cp .env.example .env                   # read by Docker Compose itself
+cp backend/.env.example backend/.env   # read by Django, inside the container
+```
+
+```powershell
+# PowerShell equivalent
+Copy-Item .env.example .env
+Copy-Item backend\.env.example backend\.env
+```
+
+The root **`.env`** flips `docker-compose.yml` into local mode — development settings, a named
+volume for media, and a browser-reachable API URL. Copy it as-is; no editing needed. It is
+gitignored, which is exactly why the production defaults are baked into `docker-compose.yml` (see
+[below](#one-compose-file-two-environments)).
+
+In **`backend/.env`**, set `SECRET_KEY` to any random string. Everything else already has working
+local defaults — the database and Redis values match the compose services, and email prints to the
+backend container log rather than actually being sent. You only need real credentials if you want to
+exercise Stripe payments or genuine email delivery.
+
+### 3. Start the stack
+
+```bash
+docker compose up --build
+```
+
+The first build pulls the Postgres/Redis/Python/Node images and installs both dependency trees, so
+expect roughly 5–10 minutes. Subsequent starts (`docker compose up -d`) take seconds.
+
+### 4. Run migrations
+
+A fresh database has no schema, so the API will error until you run this once (the deploy workflow
+runs the same step against the VPS):
+
+```bash
+docker compose exec -T backend python manage.py migrate --no-input
+```
+
+`celery_beat` restart-loops until this finishes — it needs the `django_celery_beat` tables — and
+settles on its own afterwards.
+
+Once that is done, both storefronts are live:
+
+| URL | What you get |
+|---|---|
+| <http://localhost:3000/> | Hub landing page — choose a storefront |
+| <http://localhost:3000/shop> | Grocery storefront |
+| <http://localhost:3000/restaurant> | Mary Ben's Kitchen Restaurant storefront |
+| <http://localhost:3000/admin> | Custom Next.js admin dashboard (staff login required) |
+| <http://localhost:8000/api/docs/> | Swagger UI |
+| <http://localhost:8000/admin/> | Django admin |
+
+### 5. Create an admin user
+
+```bash
+docker compose exec backend python manage.py createsuperuser
+```
+
+Log in with that account at <http://localhost:3000/login> to reach the admin dashboard, or at
+<http://localhost:8000/admin/> for Django admin. A fresh database has no products or menu items —
+add a few through the admin so the storefronts have something to show.
+
+### Everyday commands
+
+```bash
+# Stop (containers removed, database and uploaded media kept)
+docker compose down
+
+# Follow logs for one service
+docker compose logs -f backend
+
+# Django shell / management commands
+docker compose exec backend python manage.py shell
+docker compose exec backend python manage.py makemigrations
+
+# psql against the local database
+docker compose exec db psql -U postgres -d mary_kitchen_db
+
+# Wipe everything including the database volume and start clean
+docker compose down -v
+```
+
+Code is baked into the images rather than mounted, so after editing `backend/` or `frontend/`
+rebuild the service you changed:
+
+```bash
+docker compose up -d --build backend     # or: frontend
+```
+
+If you are iterating heavily, it is faster to run that one service on the host (`python manage.py
+runserver` / `npm run dev`) and leave the rest in Docker.
+
+<a id="one-compose-file-two-environments"></a>
+
+### One compose file, two environments
+
+There is a single `docker-compose.yml`, used both here and by
+`.github/workflows/deploy.yml` on the VPS. A handful of values are
+`${VAR:-default}` substitutions whose **defaults are the production values**, so the server needs no
+configuration at all — `docker-compose up -d --build` there behaves exactly as it always has. Your
+root `.env` supplies the local values, and since it is gitignored it can never leak onto the server.
+
+| Variable | Production default | Local `.env` value |
+|---|---|---|
+| `DJANGO_SETTINGS_MODULE` | `mary_kitchen.settings.production` | `mary_kitchen.settings.development` |
+| `MEDIA_VOLUME` | `/var/www/Mary-kitchen/media` (VPS bind mount) | `media_data` (named volume) |
+| `NEXT_PUBLIC_API_URL` | `http://backend:8000/api/v1` | `http://localhost:8000/api/v1` |
+
+Switching to the development settings is what makes the stack usable over plain `http://localhost`:
+production sets `DEBUG=False` (so Django stops serving `/media/`, and uploaded images 404) and forces
+`SESSION_COOKIE_SECURE`/`CSRF_COOKIE_SECURE` (so Django admin login cannot complete without HTTPS).
+It also runs Celery tasks eagerly, so the `celery_worker` and `celery_beat` containers idle
+harmlessly.
+
+The API URL row matters most: `NEXT_PUBLIC_*` values are inlined into the browser bundle **at build time**
+(see the `env` block in `next.config.js`), and it is the browser — not the container — that calls
+the API, so the value has to be a URL your browser can resolve. `docker-compose.yml` therefore passes
+it as a Docker **build arg**, not just a container env var.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| `docker: command not found` | Open a new terminal after installing, or launch Docker Desktop once. |
+| `error during connect ... docker_engine` | Docker Desktop is not running. Start it and wait for *Engine running*. |
+| `env file ./backend/.env not found` | You skipped step 2 — both `.env` files are gitignored and must be created locally. |
+| Backend 500s / `relation does not exist` | Migrations have not been run — see step 4. |
+| `celery_beat` keeps restarting | Same cause; it settles once migrations have run. |
+| `Bind for 0.0.0.0:5432 failed: port is already allocated` | A local PostgreSQL/Redis is already using the port. Stop it, or drop the `ports` mapping for `db`/`redis` in `docker-compose.yml` (nothing outside Docker needs them). |
+| Frontend loads but every API call fails | The frontend was built against a different API URL. Check the root `.env`, then `docker compose build --no-cache frontend`. |
+| Django admin login bounces back to the form | You are running the production settings over plain http — confirm the root `.env` exists and sets `DJANGO_SETTINGS_MODULE`. |
+| WSL / virtualization errors on Windows | Run `wsl --update`, and enable virtualization (Intel VT-x / AMD-V) in the BIOS. |
+
+---
+
+## Running Locally without Docker
 
 ### Prerequisites
 - Python 3.11+
@@ -71,16 +251,7 @@ Mary Kitchen/
 bash setup.sh
 ```
 
-### Option B – Docker (recommended)
-```bash
-# Copy and configure .env
-cp backend/.env.example backend/.env
-# Edit backend/.env with your settings
-
-docker-compose up --build
-```
-
-### Option C – Manual Setup
+### Option B – Manual Setup
 
 **Backend**
 ```bash
@@ -96,9 +267,14 @@ python manage.py runserver
 **Frontend**
 ```bash
 cd frontend
-cp .env.local.example .env.local   # Edit .env.local
 npm install
 npm run dev
+```
+
+Create `frontend/.env.local` with:
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key
 ```
 
 ---
