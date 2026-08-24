@@ -5,6 +5,8 @@ from celery import shared_task
 from django.conf import settings
 from django.core.mail import EmailMessage, EmailMultiAlternatives, send_mail
 
+from core.frontend_urls import admin_order_url, order_path, order_url
+
 from apps.notifications.order_status_copy import order_status_body_fragment
 from apps.notifications.order_slip_pdf import build_order_slip_pdf
 
@@ -71,7 +73,7 @@ def send_order_confirmation_email(self, order_id: str):
         Notification.objects.get_or_create(
             user=user,
             notification_type="order_update",
-            action_url=f"/orders/{order.order_number}",
+            action_url=order_path(order),
             defaults=dict(
                 title="Order placed successfully",
                 message=f"Your order #{order.order_number} was placed and payment received.",
@@ -85,7 +87,7 @@ def send_order_confirmation_email(self, order_id: str):
             f"Order Total: ${order.total_amount}\n"
             f"Order Type: {order.get_order_type_display()}\n\n"
             "Your order slip is attached as a PDF.\n\n"
-            f"You can track your order at: {settings.FRONTEND_URL}/orders/{order.order_number}\n\n"
+            f"You can track your order at: {order_url(order)}\n\n"
             "Thank you for shopping with Mary Kitchen!\n"
         )
         email = EmailMessage(
@@ -123,7 +125,7 @@ def send_order_status_update_email(order_id: str, new_status: str):
             message=(
                 f"Hi {user.first_name},\n\n"
                 f"Your order #{order.order_number} {msg}.\n\n"
-                f"Track your order: {settings.FRONTEND_URL}/orders/{order.order_number}\n\n"
+                f"Track your order: {order_url(order)}\n\n"
                 f"Thank you,\nMary Kitchen Team\n"
             ),
             from_email=settings.DEFAULT_FROM_EMAIL,
@@ -219,7 +221,7 @@ def notify_admin_new_order(self, order_id: str):
             for item in order.items.all()
         ])
 
-        order_url = f"{settings.FRONTEND_URL}/admin/orders?order={order.order_number}"
+        staff_order_url = admin_order_url(order)
 
         html = f"""
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;background:#f9fafb;border-radius:12px;">
@@ -241,7 +243,7 @@ def notify_admin_new_order(self, order_id: str):
             <pre style="margin:0;font-size:13px;color:#555;white-space:pre-wrap;">{items_text}</pre>
           </div>
 
-          <a href="{order_url}" style="display:inline-block;background:#1a5276;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;">
+          <a href="{staff_order_url}" style="display:inline-block;background:#1a5276;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;">
             View Order in Admin Panel →
           </a>
 
@@ -258,7 +260,7 @@ def notify_admin_new_order(self, order_id: str):
             f"Total: ${order.total_amount}\n"
             f"Payment: {order.payment_status}\n\n"
             f"Items:\n{items_text}\n\n"
-            f"View order: {order_url}\n"
+            f"View order: {staff_order_url}\n"
         )
 
         msg = EmailMultiAlternatives(

@@ -7,6 +7,8 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+from core.frontend_urls import order_path
+
 from apps.cart.models import Cart
 from apps.delivery.services import get_delivery_fee
 from apps.products.models import Product, ProductVariant
@@ -298,7 +300,7 @@ def update_order_status(order: Order, new_status: str, changed_by, note: str = "
             title=order_status_notification_title(new_status, order.order_type),
             message=order_status_notification_message(order.order_number, new_status, order.order_type),
             notification_type="order_update",
-            action_url=f"/orders/{order.order_number}",
+            action_url=order_path(order),
             metadata={"order_number": order.order_number, "status": new_status},
         )
     except Exception:
