@@ -18,6 +18,7 @@ urlpatterns = [
     path(API_V1 + "auth/", include("apps.users.urls.auth_urls")),
     path(API_V1 + "users/", include("apps.users.urls.user_urls")),
     path(API_V1 + "products/", include("apps.products.urls")),
+    path(API_V1 + "menu/", include("apps.menu.urls")),
     path(API_V1 + "cart/", include("apps.cart.urls")),
     path(API_V1 + "orders/", include("apps.orders.urls")),
     path(API_V1 + "payments/", include("apps.payments.urls")),

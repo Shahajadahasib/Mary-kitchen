@@ -284,7 +284,7 @@ def handle_payment_success(payment_intent_id: str) -> Payment | None:
 
 def _clear_user_cart(order: Order) -> None:
     try:
-        cart = Cart.objects.get(user=order.user)
+        cart = Cart.objects.get(user=order.user, channel=order.channel)
         cart.clear()
     except Cart.DoesNotExist:
         pass

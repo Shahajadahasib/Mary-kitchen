@@ -52,6 +52,7 @@ class CheckoutView(APIView):
                     address_id=d.get("address_id"),
                     notes=d.get("notes", ""),
                     session_id=d.get("session_id", ""),
+                    channel=d.get("channel", "grocery"),
                 )
                 try:
                     payment = create_checkout_session(order)
@@ -129,7 +130,7 @@ class AdminOrderListView(generics.ListAPIView):
     serializer_class = AdminOrderSerializer
     permission_classes = ADMIN_API_PERMISSION_CLASSES
     search_fields = ["order_number", "user__email"]
-    filterset_fields = ["status", "order_type", "payment_status", "has_out_of_stock_items"]
+    filterset_fields = ["status", "order_type", "payment_status", "has_out_of_stock_items", "channel"]
     ordering_fields = ["created_at", "total_amount"]
 
     def get_queryset(self):
