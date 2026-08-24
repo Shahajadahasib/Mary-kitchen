@@ -193,4 +193,12 @@ jobs:
                   script: |
                       set -euo pipefail
                       cd /var/www/Mary-kitchen
-                      bash deploy/deploy.sh "$DEPLOY_SHA"
+                      git fetch origin --prune
+                      # Read the deploy script straight out of the commit being
+                      # deployed, into a file outside the working tree. Two
+                      # reasons: the checkout on the box may predate the script
+                      # existing at all, and bash reads a script incrementally —
+                      # letting the deploy overwrite the file it is currently
+                      # executing is a genuine way to corrupt a release.
+                      git show "$DEPLOY_SHA:deploy/deploy.sh" > /tmp/mary-kitchen-deploy.sh
+                      bash /tmp/mary-kitchen-deploy.sh "$DEPLOY_SHA"
