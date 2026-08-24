@@ -37,7 +37,16 @@ python manage.py runserver        # runs on http://localhost:8000
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py shell
+python manage.py test              # whole suite
+python manage.py test apps.orders  # one app
 ```
+
+Tests live in each app's `tests.py`, with shared object builders in
+`backend/core/test_factories.py` — use those rather than hand-rolling fixtures, since
+most models need a unique slug or SKU and collide otherwise. The suite leans on the
+places where the two storefronts share code and behave differently (stock vs. 86-list
+availability, per-channel carts, channel-aware frontend links); add to it when you touch
+that seam.
 
 Settings module is selected via `DJANGO_SETTINGS_MODULE`. Default is `mary_kitchen.settings.development`. The `development` settings use `CELERY_TASK_ALWAYS_EAGER=True` (no Redis/worker needed) and `LocMemCache` (no Redis needed for sessions/cache).
 
@@ -59,6 +68,28 @@ docker-compose up --build
 ### API Docs (when backend is running)
 - Swagger UI: http://localhost:8000/api/docs/
 - ReDoc: http://localhost:8000/api/redoc/
+
+## CI/CD
+
+One workflow, `.github/workflows/ci.yml`, holds everything. It runs on pushes to `main`
+and on pull requests targeting `main`.
+
+Three check jobs run in parallel — `backend` (missing-migration check, a `check --deploy`
+pass against production settings, then the test suite against Postgres), `frontend`
+(lint, `tsc --noEmit`, build) and `docker` (builds both Dockerfiles, which is what
+production actually runs). A fourth job, `deploy`, declares
+`needs: [backend, frontend, docker]`, so a red check makes the deploy unreachable rather
+than merely unadvisable. Keep it that way: moving the deploy back into its own workflow
+re-creates the race it used to lose, where it shipped in parallel with the checks.
+
+`deploy` SSHes to the VPS and runs `deploy/deploy.sh <sha>`, which checks out the exact
+tested commit, builds images while the old stack still serves, migrates from a one-off
+container before any new container takes traffic, then health-checks both services and
+rolls back to the previous commit if either fails to answer. Edit that script rather than
+inlining steps into the workflow, so the same sequence can be run by hand on the box.
+
+`render.yaml` is a second, unused deployment path kept from an earlier setup
+(`autoDeploy: false`). The VPS is the live one.
 
 ## Architecture
 
