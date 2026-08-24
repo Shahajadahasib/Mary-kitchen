@@ -18,10 +18,14 @@ Phases 3 and 4 have since shipped too: the root path is a hub landing page, the 
 `/shop`, and the restaurant storefront (menu browse, dish detail with modifier picker, cart, checkout,
 order tracking) is live under `/restaurant`. The migrations have been applied to the development database.
 
-**Resuming this work in a new session:** what remains is Phase 5 (admin menu-management screens and a
-channel filter on the admin orders queue) and Phase 6 (polish — per-storefront SEO, menu-item reviews,
-channel-split analytics). Start at `memory/restaurant_expansion_roadmap.md`, which has the locked product
-decisions and a step-by-step plan for each remaining phase.
+Phase 5 has shipped as well: `/admin/menu` manages menu categories and dishes (photos, modifier groups,
+and separate on-menu / 86-for-today toggles), and the admin orders queue has All / Grocery / Restaurant
+tabs.
+
+**Resuming this work in a new session:** only Phase 6 remains (polish — per-storefront SEO, menu-item
+reviews, channel-split analytics) and it is not scoped yet. Start at
+`memory/restaurant_expansion_roadmap.md`, which has the locked product decisions and a
+"Things later phases must not undo" section covering the invariants that were easy to get wrong.
 
 ## Development Commands
 
@@ -90,7 +94,7 @@ docker-compose up --build
 - `page.tsx` at the root — the hub landing page, one card per storefront
 - `shop/` — the grocery storefront (products, cart, checkout, orders, profile, wishlist)
 - `restaurant/` — the restaurant storefront (menu, dish detail, cart, checkout, orders)
-- `(admin)/admin/` — protected admin dashboard (orders, products, categories, users, delivery, analytics)
+- `(admin)/admin/` — protected admin dashboard (orders, products, menu, categories, users, delivery, analytics)
 - Top-level routes: `login`, `register`, `verify-email`, `forgot-password` — shared by both storefronts
 
 The grocery shop used to live at the root as a `(shop)` route group. `next.config.js` carries permanent

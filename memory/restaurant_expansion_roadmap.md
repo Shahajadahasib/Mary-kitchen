@@ -1,11 +1,11 @@
 ---
 name: restaurant-expansion-roadmap
-description: Execution plan for the restaurant expansion. Phases 1-4 have shipped (backend domain, unified pipeline, hub page + route move, restaurant storefront). Phases 5-6 (admin menu screens, polish) remain — this file is the resume point.
+description: Execution plan for the restaurant expansion. Phases 1-5 have shipped (backend domain, unified pipeline, hub page + route move, restaurant storefront, admin menu screens). Only Phase 6 (polish, unscoped) remains — this file is the resume point.
 metadata:
   type: project
 ---
 
-# Restaurant expansion — roadmap (Phases 5-6 remain)
+# Restaurant expansion — roadmap (only Phase 6 remains)
 
 **Read this first if you are resuming this work in a new session.** Phases 1-4 are done and on
 `main`'s history via `feature/restaurant-hub-phase3`:
@@ -18,9 +18,12 @@ metadata:
 - **Phase 4** — the restaurant storefront under `/restaurant`: menu browse with category and
   dietary-tag filters, dish detail with the modifier picker, cart, checkout, order history and
   tracking.
+- **Phase 5** — admin menu management (`/admin/menu`: categories, dish list with inline
+  on-menu/86 toggles, dish create, dish editor with photos and modifier groups) and All /
+  Grocery / Restaurant tabs on the admin orders queue.
 
 The migrations (`menu/0001_initial`, `cart/0003_...`, `orders/0008_...`) have been applied to the
-development database. **What remains is Phase 5 and Phase 6 below.**
+development database. **Only Phase 6 below remains, and it is not scoped yet.**
 
 ## Things later phases must not undo
 
@@ -70,16 +73,19 @@ Note for Phase 6: the root `layout.tsx` still carries grocery-specific metadata 
 JSON-LD that now applies to the hub as well. The hub and the restaurant segment override title,
 description and canonical, but the structured data has not been split per storefront yet.
 
-## Phase 5 — admin
+## Phase 5 — done
 
-- **New `(admin)/admin/menu/`** — categories CRUD, menu item CRUD (image upload via the existing
-  `FormData` convention — see `CLAUDE.md`'s "Frontend image/file uploads must use `FormData`"
-  rule), modifier groups/options CRUD nested under an item. Mirrors
-  `(admin)/admin/products/` and `(admin)/admin/categories/` closely, against the
-  `/api/v1/menu/admin/...` endpoints that already exist (see `apps/menu/urls.py`,
-  `apps/menu/views.py`).
-- **Channel tab/filter on `(admin)/admin/orders/page.tsx`** — the server side is already done
-  (`AdminOrderListView.filterset_fields` includes `"channel"`); this phase is purely the UI filter.
+Screens live under `frontend/src/app/(admin)/admin/menu/`: `categories/`, the dish list at the
+segment root, `items/new/`, and `items/[id]/edit/`. `components/admin/MenuItemFields.tsx` holds the
+dish fields shared by create and edit.
+
+Two things to know before touching these:
+
+- The image **collection** route (`/menu/admin/items/<id>/images/`) is a viewset action that only
+  accepts POST; per-image PATCH/DELETE belong to a separate nested viewset. A GET list there
+  returns 405, so the editor reads photos from the dish detail payload.
+- `is_active` (permanently on the menu) and `is_available` (today's 86 list) are independent, and
+  both are toggled inline from the dish list. Do not collapse them into one control.
 
 ## Phase 6 — polish / not yet scoped
 
@@ -94,21 +100,16 @@ Not decided in detail yet — revisit with the project owner once Phases 3-5 are
 
 ## Risks & mitigations (for the phases that remain)
 
-- **Admin's orders queue mixes both channels.** Staff fulfilling grocery deliveries and staff
-  plating restaurant takeaway are looking at one undifferentiated list. `AdminOrderListView`
-  already filters on `channel`; the UI filter is the missing half. Treat it as required for
-  Phase 5, not as polish.
-- **Menu admin has more nesting than the product admin.** Modifier groups hang off an item and
-  options hang off a group, through `drf-nested-routers` routes. Build and verify one level at a
-  time rather than assuming it mirrors `(admin)/admin/products/`.
-- **Deleting menu data is guarded server-side.** A category with items returns 400, and a dish
-  with existing orders returns 409 (deactivate instead). Surface both messages in the UI rather
-  than showing a generic failure.
-- **Per-storefront SEO is unfinished, not merely absent.** See the note under "Phases 3 and 4".
+- **Per-storefront SEO is unfinished, not merely absent.** The root `layout.tsx` still carries
+  grocery-specific metadata and `GroceryStore` JSON-LD that now also applies to the hub. The hub
+  and the restaurant segment override title/description/canonical, but the structured data has
+  not been split. This is the most concrete item in Phase 6.
+- **Deleting menu data is guarded server-side.** A category with dishes returns 400, and a dish on
+  existing orders returns 409 (deactivate instead). The admin screens surface both messages —
+  keep that if these screens are reworked.
 
 ## How to apply
 
-Phase 5 is admin-only work against endpoints that already exist (`/api/v1/menu/admin/...`, see
-`apps/menu/urls.py`). It touches neither storefront, so it cannot regress customer-facing
-checkout — but do re-read "Things later phases must not undo" above before changing anything in
-`cart`, `orders`, or the URL builders.
+Phase 6 is not scoped — agree the list with the project owner before starting. Whatever it
+covers, re-read "Things later phases must not undo" above before changing anything in `cart`,
+`orders`, the URL builders, or the cart stores.
