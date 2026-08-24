@@ -97,6 +97,10 @@ const DIETARY_LABELS: Record<string, string> = {
   dairy_free: "Dairy free",
 };
 
+/** The tags the admin UI offers as checkboxes. `dietary_tags` is a free-form
+ *  JSON list, so a dish may still carry tags outside this set. */
+export const DIETARY_TAG_OPTIONS = Object.keys(DIETARY_LABELS);
+
 export function dietaryLabel(tag: string): string {
   return (
     DIETARY_LABELS[tag] ??

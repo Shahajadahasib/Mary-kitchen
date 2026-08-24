@@ -12,6 +12,7 @@ import {
     ShoppingCart,
     Tag,
     Truck,
+    UtensilsCrossed,
     Users,
     X,
 } from "lucide-react";
@@ -23,6 +24,7 @@ import { useEffect, useState } from "react";
 const NAV_ITEMS = [
     { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { label: "Products", href: "/admin/products", icon: Package },
+    { label: "Menu", href: "/admin/menu", icon: UtensilsCrossed },
     { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
     { label: "Users", href: "/admin/users", icon: Users },
     { label: "Categories", href: "/admin/categories", icon: Tag },
