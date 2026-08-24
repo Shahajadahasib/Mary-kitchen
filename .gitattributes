@@ -1,0 +1,4 @@
+# Shell scripts must keep LF endings. deploy/deploy.sh runs on the Linux VPS,
+# and bash treats a trailing CR as part of the command — a CRLF checkout makes
+# every line fail with "command not found".
+*.sh text eol=lf
