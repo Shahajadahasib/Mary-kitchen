@@ -14,13 +14,14 @@ serves both channels) shipped and has been verified twice (migrations apply clea
 `Order`/`Cart`/`OrderItem`/`CartItem` now carries a `channel` (`"grocery"` | `"restaurant"`) — read that
 file before touching checkout, cart, or order code.
 
-**Resuming this work in a new session:** the frontend (hub page, restaurant storefront, admin menu screens
-— Phases 3-6) has not been built yet. Start at `memory/restaurant_expansion_roadmap.md` — it has the
-locked product decisions, the exact current frontend route structure, and a concrete step-by-step plan for
-each remaining phase. One manual prerequisite before starting: the two new migrations
-(`cart/0003_...`, `orders/0008_...`, plus `menu/0001_initial`) need to be applied with
-`python manage.py migrate` — as of 2026-08-24 this has been verified in a sandbox but not yet run against
-the real development database.
+Phases 3 and 4 have since shipped too: the root path is a hub landing page, the grocery shop moved to
+`/shop`, and the restaurant storefront (menu browse, dish detail with modifier picker, cart, checkout,
+order tracking) is live under `/restaurant`. The migrations have been applied to the development database.
+
+**Resuming this work in a new session:** what remains is Phase 5 (admin menu-management screens and a
+channel filter on the admin orders queue) and Phase 6 (polish — per-storefront SEO, menu-item reviews,
+channel-split analytics). Start at `memory/restaurant_expansion_roadmap.md`, which has the locked product
+decisions and a step-by-step plan for each remaining phase.
 
 ## Development Commands
 
@@ -85,16 +86,23 @@ docker-compose up --build
 
 ### Frontend (`frontend/src/`)
 
-**Routing**: Next.js 14 App Router with two route groups:
-- `(shop)/` — public-facing shop (products, cart, checkout, orders, profile, wishlist)
+**Routing**: Next.js 14 App Router, one app serving two storefronts:
+- `page.tsx` at the root — the hub landing page, one card per storefront
+- `shop/` — the grocery storefront (products, cart, checkout, orders, profile, wishlist)
+- `restaurant/` — the restaurant storefront (menu, dish detail, cart, checkout, orders)
 - `(admin)/admin/` — protected admin dashboard (orders, products, categories, users, delivery, analytics)
-- Top-level routes: `login`, `register`, `verify-email`, `forgot-password`
+- Top-level routes: `login`, `register`, `verify-email`, `forgot-password` — shared by both storefronts
+
+The grocery shop used to live at the root as a `(shop)` route group. `next.config.js` carries permanent
+redirects from those old paths to `/shop/...`, for links already in sent emails, stored notification rows,
+and customer bookmarks. Backend-generated links come from `core/frontend_urls.py`, which picks the
+storefront from `Order.channel` — never hardcode `/shop` or `/restaurant` into a backend link.
 
 **API client** (`lib/api.ts`): Axios instance with base URL from `NEXT_PUBLIC_API_URL`. Attaches JWT access token from cookies on every request. Automatically refreshes token on 401 using refresh token; redirects to `/login` on refresh failure. FormData requests automatically drop the `Content-Type` header to let the browser set the multipart boundary.
 
 **State management**:
 - `store/authStore.ts` — Zustand + `persist` middleware (localStorage). Tracks `user`, `isAuthenticated`, `hasHydrated`. Protected routes must wait for `hasHydrated` before checking `isAuthenticated`.
-- `store/cartStore.ts` — Zustand cart state
+- `store/cartStore.ts` — one Zustand store instance per channel: `useGroceryCart` and `useRestaurantCart`. The backend keeps one cart per `(user, channel)`, so picking the hook picks the channel — never add a "current cart" that infers the channel from the route.
 
 **Key libraries**: `@tanstack/react-query` for server state, `react-hook-form` + `zod` for forms, `recharts` for admin charts, `@stripe/react-stripe-js` for payment UI, `react-hot-toast` for notifications.
 
