@@ -3,6 +3,7 @@
  */
 import axios, { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
 import Cookies from "js-cookie";
+import { STOREFRONT_ROOTS, storefrontRootFor } from "@/lib/authRedirect";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
@@ -17,16 +18,10 @@ const PROTECTED_SUFFIXES = [
   "/profile",
   "/notifications",
 ];
-const STOREFRONTS = ["/shop", "/restaurant"];
-
 const PROTECTED_ROUTES = [
   "/admin",
-  ...STOREFRONTS.flatMap((s) => PROTECTED_SUFFIXES.map((p) => `${s}${p}`)),
+  ...STOREFRONT_ROOTS.flatMap((s) => PROTECTED_SUFFIXES.map((p) => `${s}${p}`)),
 ];
-
-/** The storefront a path belongs to, for post-logout redirects. Hub if neither. */
-const storefrontRoot = (path: string) =>
-  STOREFRONTS.find((s) => path === s || path.startsWith(`${s}/`)) ?? "/";
 
 const handleSessionExpired = () => {
   if (typeof window === "undefined") return;
@@ -45,7 +40,7 @@ const handleSessionExpired = () => {
     // Dispatch event so UI can show "session expired" toast
     window.dispatchEvent(new CustomEvent("session-expired"));
     // Send them back to the storefront they were in, not the other one's home.
-    const destination = storefrontRoot(currentPath);
+    const destination = storefrontRootFor(currentPath);
     setTimeout(() => {
       window.location.href = destination;
     }, 1500);

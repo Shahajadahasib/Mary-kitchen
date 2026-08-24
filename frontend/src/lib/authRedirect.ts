@@ -10,6 +10,22 @@
 /** Query-param name carrying the post-auth destination. */
 export const NEXT_PARAM = "next";
 
+/** Root path of each storefront. The hub lives at "/". */
+export const STOREFRONT_ROOTS = ["/shop", "/restaurant"] as const;
+
+/**
+ * Which storefront a path belongs to, for redirects that should keep a user in
+ * the business they were already using (logout, session expiry). Falls back to
+ * the hub when the path belongs to neither — e.g. /admin or an auth page.
+ */
+export function storefrontRootFor(path: string | null | undefined): string {
+  if (!path) return DEFAULT_POST_AUTH_PATH;
+  return (
+    STOREFRONT_ROOTS.find((s) => path === s || path.startsWith(`${s}/`)) ??
+    DEFAULT_POST_AUTH_PATH
+  );
+}
+
 /** Where users land when there is no usable `next`. */
 export const DEFAULT_POST_AUTH_PATH = "/";
 

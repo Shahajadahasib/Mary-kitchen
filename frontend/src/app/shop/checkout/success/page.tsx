@@ -111,7 +111,7 @@ export default function CheckoutSuccessPage() {
         <span className="font-semibold text-gray-900">#{orderNumber}</span> is confirmed.
       </p>
       <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-        <Link href={orderNumber ? `/orders/${encodeURIComponent(orderNumber)}` : "/orders"} className="btn-primary inline-flex justify-center">
+        <Link href={orderNumber ? `/shop/orders/${encodeURIComponent(orderNumber)}` : "/shop/orders"} className="btn-primary inline-flex justify-center">
           View order
         </Link>
         <button type="button" onClick={() => router.push("/shop/products")} className="btn-secondary">

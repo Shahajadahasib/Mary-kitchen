@@ -1,21 +1,13 @@
 "use client";
-import { Skeleton } from "@/components/ui/Skeleton";
-import api from "@/lib/api";
-import {
-    formatCurrency,
-    formatDate,
-    getStatusColor,
-    orderStatusLabel,
-} from "@/lib/utils";
-import { useGroceryCart } from "@/store/cartStore";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     CheckCircle,
+    ChefHat,
     Clock,
     CreditCard,
     Home,
     MapPin,
-    Package,
     RefreshCw,
     ShoppingBag,
     Truck,
@@ -24,24 +16,41 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { Skeleton } from "@/components/ui/Skeleton";
+import api from "@/lib/api";
+import {
+    formatCurrency,
+    formatDate,
+    getStatusColor,
+    orderStatusLabel,
+} from "@/lib/utils";
+import { useRestaurantCart } from "@/store/cartStore";
 
+/**
+ * Restaurant order tracking.
+ *
+ * The status flow is the shared `Order` one, so the step list matches the
+ * grocery page's — only the labels are reworded for a kitchen ("Cooking"
+ * rather than "Processing") and menu-item lines render their modifier snapshot
+ * instead of a variant name.
+ */
 const DELIVERY_STEPS = [
     { key: "pending", label: "Pending", icon: Clock },
     { key: "confirmed", label: "Confirmed", icon: CheckCircle },
-    { key: "processing", label: "Processing", icon: Package },
-    { key: "out_for_delivery", label: "Out for Delivery", icon: Truck },
+    { key: "processing", label: "Cooking", icon: ChefHat },
+    { key: "out_for_delivery", label: "On its way", icon: Truck },
     { key: "delivered", label: "Delivered", icon: Home },
 ];
 
 const PICKUP_STEPS = [
     { key: "pending", label: "Pending", icon: Clock },
     { key: "confirmed", label: "Confirmed", icon: CheckCircle },
-    { key: "processing", label: "Processing", icon: Package },
-    { key: "ready_for_pickup", label: "Ready for Pickup", icon: ShoppingBag },
-    { key: "delivered", label: "Picked Up", icon: Home },
+    { key: "processing", label: "Cooking", icon: ChefHat },
+    { key: "ready_for_pickup", label: "Ready", icon: ShoppingBag },
+    { key: "delivered", label: "Collected", icon: Home },
 ];
 
-export default function OrderDetailPage() {
+export default function RestaurantOrderDetailPage() {
     const { orderNumber } = useParams();
     const queryClient = useQueryClient();
     const [retrying, setRetrying] = useState(false);
@@ -53,8 +62,8 @@ export default function OrderDetailPage() {
         const num = Array.isArray(orderNumber) ? orderNumber[0] : orderNumber;
         queryClient.invalidateQueries({ queryKey: ["order", num] });
         toast.success("Payment complete");
-        void useGroceryCart.getState().fetchCart();
-        window.history.replaceState({}, "", `/shop/orders/${num}`);
+        void useRestaurantCart.getState().fetchCart();
+        window.history.replaceState({}, "", `/restaurant/orders/${num}`);
     }, [orderNumber, queryClient]);
 
     const { data: order, isLoading } = useQuery({
@@ -63,7 +72,7 @@ export default function OrderDetailPage() {
         refetchInterval: 30000,
     });
 
-    if (isLoading)
+    if (isLoading) {
         return (
             <div className="container-xl py-8 space-y-4">
                 <Skeleton className="h-12 w-64" />
@@ -71,13 +80,15 @@ export default function OrderDetailPage() {
                 <Skeleton className="h-64 rounded-xl" />
             </div>
         );
+    }
 
-    if (!order)
+    if (!order) {
         return (
             <div className="container-xl py-20 text-center text-gray-400">
                 Order not found
             </div>
         );
+    }
 
     const isPickup = order.order_type === "pickup";
     const steps = isPickup ? PICKUP_STEPS : DELIVERY_STEPS;
@@ -96,7 +107,7 @@ export default function OrderDetailPage() {
         } catch (e: any) {
             toast.error(
                 e?.response?.data?.message ||
-                    "Failed to start payment. Please try again.",
+                    "Failed to start payment. Please try again."
             );
             setRetrying(false);
         }
@@ -104,13 +115,13 @@ export default function OrderDetailPage() {
 
     return (
         <div className="container-xl px-4 py-6 md:py-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <Link
-                        href="/shop/orders"
-                        className="text-sm text-primary-700 hover:underline mb-1 block"
+                        href="/restaurant/orders"
+                        className="mb-1 block text-sm text-brand-700 hover:underline"
                     >
-                        ← Back to Orders
+                        ← Back to orders
                     </Link>
                     <h1 className="text-2xl font-bold text-gray-900">
                         Order #{order.order_number}
@@ -121,31 +132,30 @@ export default function OrderDetailPage() {
                 </div>
                 <div className="sm:text-right">
                     <span
-                        className={`badge text-sm px-3 py-1 ${getStatusColor(order.status)}`}
+                        className={`badge px-3 py-1 text-sm ${getStatusColor(order.status)}`}
                     >
                         {orderStatusLabel(order.status, order.order_type)}
                     </span>
-                    <p className="text-xl font-bold text-primary-700 mt-1">
+                    <p className="mt-1 text-xl font-bold text-brand-700">
                         {formatCurrency(order.total_amount)}
                     </p>
                 </div>
             </div>
 
-            {/* Tracking */}
             {!isCancelled && (
-                <div className="card p-6 mb-6">
-                    <div className="flex items-center justify-between mb-5">
+                <div className="card mb-6 p-6">
+                    <div className="mb-5 flex items-center justify-between">
                         <h2 className="font-semibold text-gray-900">
-                            Order Tracking
+                            Order progress
                         </h2>
-                        <span className="text-xs text-gray-400 capitalize bg-gray-100 px-2 py-1 rounded-full">
-                            {isPickup ? "Pickup" : "Delivery"}
+                        <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500">
+                            {isPickup ? "Takeaway" : "Delivery"}
                         </span>
                     </div>
                     <div className="relative flex justify-between overflow-x-auto pb-2">
-                        <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 z-0">
+                        <div className="absolute left-0 right-0 top-5 z-0 h-1 bg-gray-200">
                             <div
-                                className="h-full bg-primary-600 transition-all duration-500"
+                                className="h-full bg-brand-600 transition-all duration-500"
                                 style={{
                                     width: `${currentStepIdx >= 0 ? (currentStepIdx / (steps.length - 1)) * 100 : 0}%`,
                                 }}
@@ -157,19 +167,21 @@ export default function OrderDetailPage() {
                             return (
                                 <div
                                     key={step.key}
-                                    className="relative z-10 flex flex-col items-center gap-1 flex-1"
+                                    className="relative z-10 flex flex-1 flex-col items-center gap-1"
                                 >
                                     <div
-                                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                                        className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
                                             done
-                                                ? "bg-primary-600 text-white"
+                                                ? "bg-brand-600 text-white"
                                                 : "bg-gray-200 text-gray-400"
                                         }`}
                                     >
-                                        <Icon className="w-4 h-4" />
+                                        <Icon className="h-4 w-4" />
                                     </div>
                                     <span
-                                        className={`text-xs font-medium text-center hidden sm:block ${done ? "text-primary-700" : "text-gray-400"}`}
+                                        className={`hidden text-center text-xs font-medium sm:block ${
+                                            done ? "text-brand-700" : "text-gray-400"
+                                        }`}
                                     >
                                         {step.label}
                                     </span>
@@ -180,61 +192,66 @@ export default function OrderDetailPage() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-                {/* Items */}
+            <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-2">
                     <div className="card p-4 sm:p-5">
-                        <h2 className="font-semibold text-gray-900 mb-4">
-                            Items Ordered
+                        <h2 className="mb-4 font-semibold text-gray-900">
+                            What you ordered
                         </h2>
                         <div className="space-y-3">
                             {order.items?.map((item: any) => (
                                 <div
                                     key={item.id}
-                                    className="flex items-center justify-between gap-3 text-sm"
+                                    className="flex items-start justify-between gap-3 text-sm"
                                 >
                                     <div className="flex-1">
                                         <p className="font-medium text-gray-900">
                                             {item.product_name}
                                         </p>
-                                        {item.variant_name && (
-                                            <p className="text-gray-500 text-xs">
-                                                {item.variant_name}
-                                            </p>
-                                        )}
-                                        {item.was_out_of_stock && (
-                                            <span className="text-xs text-orange-500 font-medium">
-                                                ⚠ Was out of stock at order time
-                                            </span>
+                                        {/* For a menu-item line the backend stores the
+                                            modifier summary in variant_name, and the full
+                                            snapshot in selected_modifiers. */}
+                                        {item.selected_modifiers?.length > 0 ? (
+                                            <ul className="mt-0.5 space-y-0.5">
+                                                {item.selected_modifiers.map((m: any) => (
+                                                    <li
+                                                        key={m.modifier_id}
+                                                        className="text-xs text-gray-500"
+                                                    >
+                                                        {m.group}: {m.name}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            item.variant_name && (
+                                                <p className="text-xs text-gray-500">
+                                                    {item.variant_name}
+                                                </p>
+                                            )
                                         )}
                                     </div>
-                                    <span className="text-gray-500">
-                                        ×{item.quantity}
-                                    </span>
+                                    <span className="text-gray-500">×{item.quantity}</span>
                                     <span className="font-semibold">
                                         {formatCurrency(item.line_total)}
                                     </span>
                                 </div>
                             ))}
                         </div>
-                        <div className="border-t mt-4 pt-4 space-y-1 text-sm">
+
+                        <div className="mt-4 space-y-1 border-t pt-4 text-sm">
                             <div className="flex justify-between text-gray-600">
                                 <span>Subtotal</span>
                                 <span>{formatCurrency(order.subtotal)}</span>
                             </div>
                             {Number(order.delivery_fee) > 0 && (
                                 <div className="flex justify-between text-gray-600">
-                                    <span>
-                                        Delivery ({order.delivery_zone_name})
-                                    </span>
-                                    <span>
-                                        {formatCurrency(order.delivery_fee)}
-                                    </span>
+                                    <span>Delivery ({order.delivery_zone_name})</span>
+                                    <span>{formatCurrency(order.delivery_fee)}</span>
                                 </div>
                             )}
-                            <div className="flex justify-between font-bold text-base pt-1">
+                            <div className="flex justify-between pt-1 text-base font-bold">
                                 <span>Total</span>
-                                <span className="text-primary-700">
+                                <span className="text-brand-700">
                                     {formatCurrency(order.total_amount)}
                                 </span>
                             </div>
@@ -243,78 +260,63 @@ export default function OrderDetailPage() {
                 </div>
 
                 <div className="space-y-4">
-                    {/* Payment */}
                     <div className="card p-5">
-                        <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                            <CreditCard className="w-4 h-4 text-primary-600" />{" "}
-                            Payment
+                        <h2 className="mb-3 flex items-center gap-2 font-semibold text-gray-900">
+                            <CreditCard className="h-4 w-4 text-brand-600" /> Payment
                         </h2>
-                        <span
-                            className={`badge ${getStatusColor(order.payment_status)}`}
-                        >
+                        <span className={`badge ${getStatusColor(order.payment_status)}`}>
                             {orderStatusLabel(order.payment_status)}
                         </span>
                         {canPay && (
                             <div className="mt-3">
                                 {order.payment_status === "failed" && (
-                                    <p className="text-xs text-red-600 mb-2">
+                                    <p className="mb-2 text-xs text-red-600">
                                         Your payment failed. Please try again.
                                     </p>
                                 )}
                                 <button
                                     onClick={handleRetryPayment}
                                     disabled={retrying}
-                                    className="btn-primary w-full text-sm flex items-center justify-center gap-2"
+                                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
                                 >
                                     {retrying ? (
-                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                        <RefreshCw className="h-4 w-4 animate-spin" />
                                     ) : (
-                                        <CreditCard className="w-4 h-4" />
+                                        <CreditCard className="h-4 w-4" />
                                     )}
                                     {retrying
                                         ? "Redirecting…"
                                         : order.payment_status === "failed"
-                                          ? "Retry Payment"
-                                          : "Pay Now"}
+                                          ? "Retry payment"
+                                          : "Pay now"}
                                 </button>
                             </div>
                         )}
                     </div>
 
-                    {/* Delivery Address or Pickup notice */}
                     {isPickup ? (
                         <div className="card p-5">
-                            <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                <ShoppingBag className="w-4 h-4 text-primary-600" />{" "}
-                                Pickup
+                            <h2 className="mb-3 flex items-center gap-2 font-semibold text-gray-900">
+                                <ShoppingBag className="h-4 w-4 text-brand-600" /> Takeaway
                             </h2>
                             <p className="text-sm text-gray-600">
-                                Your order will be ready for collection at our
-                                store. We&apos;ll notify you when it&apos;s
-                                ready.
+                                We&apos;ll let you know as soon as your order is
+                                ready to collect from the kitchen.
                             </p>
                         </div>
                     ) : (
                         order.delivery_address && (
                             <div className="card p-5">
-                                <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                    <MapPin className="w-4 h-4 text-primary-600" />{" "}
-                                    Delivery Address
+                                <h2 className="mb-3 flex items-center gap-2 font-semibold text-gray-900">
+                                    <MapPin className="h-4 w-4 text-brand-600" /> Delivering to
                                 </h2>
-                                <address className="text-sm text-gray-600 not-italic leading-relaxed">
+                                <address className="text-sm not-italic leading-relaxed text-gray-600">
                                     <p className="font-medium text-gray-900">
                                         {order.delivery_address.full_name}
                                     </p>
-                                    <p>
-                                        {order.delivery_address.address_line1}
-                                    </p>
+                                    <p>{order.delivery_address.address_line1}</p>
                                     {order.delivery_address.address_line2 && (
-                                        <p>
-                                            {
-                                                order.delivery_address
-                                                    .address_line2
-                                            }
-                                        </p>
+                                        <p>{order.delivery_address.address_line2}</p>
                                     )}
                                     <p>
                                         {order.delivery_address.suburb}{" "}
@@ -329,15 +331,12 @@ export default function OrderDetailPage() {
                         )
                     )}
 
-                    {/* Notes */}
                     {order.notes && (
                         <div className="card p-5">
-                            <h2 className="font-semibold text-gray-900 mb-2">
-                                Notes
+                            <h2 className="mb-2 font-semibold text-gray-900">
+                                Notes for the kitchen
                             </h2>
-                            <p className="text-sm text-gray-600">
-                                {order.notes}
-                            </p>
+                            <p className="text-sm text-gray-600">{order.notes}</p>
                         </div>
                     )}
                 </div>

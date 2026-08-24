@@ -213,7 +213,7 @@ export default function CheckoutPage() {
         const params = new URLSearchParams(window.location.search);
         if (params.get("canceled") !== "1") return;
         toast.error("Payment was canceled. Your cart is unchanged.");
-        window.history.replaceState({}, "", "/checkout");
+        window.history.replaceState({}, "", "/shop/checkout");
     }, []);
 
     const { data: addresses } = useQuery<any>({

@@ -6,6 +6,7 @@
  * must wait for `hasHydrated` before acting on `isAuthenticated`.
  */
 import api from "@/lib/api";
+import { storefrontRootFor } from "@/lib/authRedirect";
 import Cookies from "js-cookie";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -82,9 +83,12 @@ export const useAuthStore = create<AuthState>()(
                 Cookies.remove("refresh_token");
                 localStorage.removeItem("auth-storage");
                 set({ user: null, isAuthenticated: false });
-                // Redirect to home, not login
+                // Back to the storefront they were in, not login — and not
+                // the other storefront's home.
                 if (typeof window !== "undefined") {
-                    window.location.href = "/";
+                    window.location.href = storefrontRootFor(
+                        window.location.pathname,
+                    );
                 }
             },
 

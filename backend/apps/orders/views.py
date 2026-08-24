@@ -78,16 +78,27 @@ class CheckoutView(APIView):
 
 
 class OrderListView(generics.ListAPIView):
-    """GET /api/v1/orders/ – current user's order history."""
+    """
+    GET /api/v1/orders/?channel=grocery|restaurant – current user's order history.
+
+    A customer's account spans both storefronts, so each storefront's order
+    screen must ask for its own channel — otherwise the restaurant would list
+    grocery orders and vice versa. Omitting `channel` returns every order,
+    which keeps any existing caller working unchanged.
+    """
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return (
+        qs = (
             Order.objects.filter(user=self.request.user)
             .prefetch_related("items", "status_history")
             .order_by("-created_at")
         )
+        channel = (self.request.query_params.get("channel") or "").strip().lower()
+        if channel in dict(Order.CHANNEL_CHOICES):
+            qs = qs.filter(channel=channel)
+        return qs
 
 
 class OrderDetailView(generics.RetrieveAPIView):
