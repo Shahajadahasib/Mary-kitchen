@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { authHref } from "@/lib/authRedirect";
 import { useEffect, useState } from "react";
 
 const NAV_ITEMS = [
@@ -42,7 +43,7 @@ export default function AdminLayout({
 
     useEffect(() => {
         if (!hasHydrated) return;
-        if (!isAuthenticated) router.push("/login");
+        if (!isAuthenticated) router.push(authHref("/login", pathname));
         else if (user && !user.is_staff) router.push("/");
     }, [hasHydrated, isAuthenticated, user?.is_staff]);
 
@@ -73,6 +74,7 @@ export default function AdminLayout({
 
     const handleLogout = async () => {
         await logout();
+        // Deliberate sign-out — don't bounce them back into admin afterwards.
         router.push("/login");
     };
 

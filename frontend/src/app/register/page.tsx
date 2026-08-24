@@ -2,11 +2,12 @@
 import api from "@/lib/api";
 import { parseApiFieldErrors } from "@/lib/parseApiFieldErrors";
 import { useAuthStore } from "@/store/authStore";
+import { authHref, resolveNextPath } from "@/lib/authRedirect";
 import Cookies from "js-cookie";
 import { Eye, EyeOff, Loader2, ShoppingBag } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import toast from "react-hot-toast";
 
 const FIELD_KEYS = [
@@ -18,8 +19,11 @@ const FIELD_KEYS = [
     "password_confirm",
 ] as const;
 
-export default function RegisterPage() {
+function RegisterForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    // Carried through verification so the user lands back where they started.
+    const nextPath = resolveNextPath(searchParams);
     const { setUser } = useAuthStore();
     const [loading, setLoading] = useState(false);
     const [form, setForm] = useState({
@@ -79,7 +83,8 @@ export default function RegisterPage() {
                 "Account created! Check your email for a verification code.",
             );
             router.push(
-                `/verify-email?email=${encodeURIComponent(form.email)}`,
+                `/verify-email?email=${encodeURIComponent(form.email)}` +
+                    `&next=${encodeURIComponent(nextPath)}`,
             );
         } catch (e: unknown) {
             const res = (
@@ -210,7 +215,7 @@ export default function RegisterPage() {
                                 <p className="text-xs text-gray-600 mt-1">
                                     This email is already registered.{" "}
                                     <Link
-                                        href="/login"
+                                        href={authHref("/login", nextPath)}
                                         className="text-primary-700 font-medium hover:underline"
                                     >
                                         Sign in
@@ -340,7 +345,7 @@ export default function RegisterPage() {
                     <p className="text-center text-sm text-gray-500 mt-5">
                         Already have an account?{" "}
                         <Link
-                            href="/login"
+                            href={authHref("/login", nextPath)}
                             className="text-primary-700 font-medium hover:underline"
                         >
                             Sign in
@@ -349,5 +354,14 @@ export default function RegisterPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+// useSearchParams() needs a Suspense boundary for static rendering.
+export default function RegisterPage() {
+    return (
+        <Suspense fallback={null}>
+            <RegisterForm />
+        </Suspense>
     );
 }

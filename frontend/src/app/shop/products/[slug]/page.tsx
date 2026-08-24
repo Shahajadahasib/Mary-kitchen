@@ -5,7 +5,7 @@ import api from "@/lib/api";
 import { absoluteMediaUrl } from "@/lib/media";
 import { formatCurrency } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
-import { useCartStore } from "@/store/cartStore";
+import { useGroceryCart } from "@/store/cartStore";
 import { useQuery } from "@tanstack/react-query";
 import {
     ChevronRight,
@@ -26,7 +26,7 @@ export default function ProductDetailPage() {
     const [quantity, setQuantity] = useState(1);
     const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
     const [activeImage, setActiveImage] = useState(0);
-    const { addItem } = useCartStore();
+    const { addItem } = useGroceryCart();
     const { isAuthenticated } = useAuthStore();
 
     const { data: product, isLoading } = useQuery({

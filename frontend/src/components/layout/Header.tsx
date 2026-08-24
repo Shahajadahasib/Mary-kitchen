@@ -3,7 +3,8 @@ import { useStoreProfile } from "@/hooks/useStoreProfile";
 import api from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
-import { useCartStore } from "@/store/cartStore";
+import { useGroceryCart } from "@/store/cartStore";
+import { authHref } from "@/lib/authRedirect";
 import { useQuery } from "@tanstack/react-query";
 import {
     AlertCircle,
@@ -20,7 +21,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 type NavCategory = { id: string; name: string; slug: string };
@@ -36,7 +37,9 @@ type ProductSuggestion = {
 
 export default function Header() {
     const router = useRouter();
-    const { cart, fetchCart } = useCartStore();
+    const pathname = usePathname();
+    const loginHref = authHref("/login", pathname);
+    const { cart, fetchCart } = useGroceryCart();
     const { user, isAuthenticated, logout } = useAuthStore();
     const { data: storeProfile } = useStoreProfile();
     const [menuOpen, setMenuOpen] = useState(false);
@@ -400,7 +403,7 @@ export default function Header() {
                                 </div>
                             ) : (
                                 <Link
-                                    href="/login"
+                                    href={loginHref}
                                     className="hidden md:flex items-center gap-2 bg-white text-primary-700 hover:bg-gray-50 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
                                 >
                                     <User className="w-4 h-4" /> Login
@@ -570,7 +573,7 @@ export default function Header() {
                             {/* Login button for guests */}
                             {!isAuthenticated && (
                                 <Link
-                                    href="/login"
+                                    href={loginHref}
                                     onClick={() => setMenuOpen(false)}
                                     className="flex items-center justify-center gap-2 bg-white text-primary-700 font-semibold text-sm px-4 py-3 rounded-xl mb-2 transition-colors"
                                 >

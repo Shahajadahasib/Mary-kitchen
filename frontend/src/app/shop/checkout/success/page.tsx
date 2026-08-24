@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
-import { useCartStore } from "@/store/cartStore";
+import { useGroceryCart } from "@/store/cartStore";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function CheckoutSuccessPage() {
   const router = useRouter();
-  const fetchCart = useCartStore((s) => s.fetchCart);
+  const fetchCart = useGroceryCart((s) => s.fetchCart);
   const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [message, setMessage] = useState("");

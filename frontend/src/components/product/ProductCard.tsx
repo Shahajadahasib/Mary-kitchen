@@ -2,7 +2,7 @@
 import api from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
-import { useCartStore } from "@/store/cartStore";
+import { useGroceryCart } from "@/store/cartStore";
 import { Heart, Minus, Plus, ShoppingCart, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -32,7 +32,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-    const { cart, addItem, updateItem, removeItem } = useCartStore();
+    const { cart, addItem, updateItem, removeItem } = useGroceryCart();
     const { isAuthenticated } = useAuthStore();
     const [busy, setBusy] = useState(false);
 

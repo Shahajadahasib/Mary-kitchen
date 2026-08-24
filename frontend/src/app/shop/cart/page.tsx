@@ -1,8 +1,9 @@
 "use client";
+import { authHref } from "@/lib/authRedirect";
 import api from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
-import { useCartStore } from "@/store/cartStore";
+import { useGroceryCart } from "@/store/cartStore";
 import {
     AlertTriangle,
     ArrowRight,
@@ -28,7 +29,7 @@ interface InvalidItem {
 
 export default function CartPage() {
     const { cart, fetchCart, updateItem, removeItem, isLoading } =
-        useCartStore();
+        useGroceryCart();
     const { isAuthenticated } = useAuthStore();
     const [invalidIds, setInvalidIds] = useState<Set<string>>(new Set());
     const [invalidItems, setInvalidItems] = useState<InvalidItem[]>([]);
@@ -64,7 +65,7 @@ export default function CartPage() {
                 <h2 className="text-xl font-semibold text-gray-700 mb-2">
                     Please login to view your cart
                 </h2>
-                <Link href="/login" className="btn-primary inline-flex mt-4">
+                <Link href={authHref("/login", "/shop/cart")} className="btn-primary inline-flex mt-4">
                     Login
                 </Link>
             </div>

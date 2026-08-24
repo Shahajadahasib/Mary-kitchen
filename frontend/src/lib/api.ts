@@ -6,8 +6,27 @@ import Cookies from "js-cookie";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
-// Routes that require authentication — redirect to login if session expires
-const PROTECTED_ROUTES = ["/cart", "/checkout", "/orders", "/profile", "/admin"];
+// Frontend paths that require authentication — show the "session expired"
+// toast and bounce the user out if the session dies while they are on one.
+// These are storefront-scoped: both /shop/... and /restaurant/... have their
+// own cart/checkout/orders trees.
+const PROTECTED_SUFFIXES = [
+  "/cart",
+  "/checkout",
+  "/orders",
+  "/profile",
+  "/notifications",
+];
+const STOREFRONTS = ["/shop", "/restaurant"];
+
+const PROTECTED_ROUTES = [
+  "/admin",
+  ...STOREFRONTS.flatMap((s) => PROTECTED_SUFFIXES.map((p) => `${s}${p}`)),
+];
+
+/** The storefront a path belongs to, for post-logout redirects. Hub if neither. */
+const storefrontRoot = (path: string) =>
+  STOREFRONTS.find((s) => path === s || path.startsWith(`${s}/`)) ?? "/";
 
 const handleSessionExpired = () => {
   if (typeof window === "undefined") return;
@@ -25,9 +44,10 @@ const handleSessionExpired = () => {
   if (isProtected) {
     // Dispatch event so UI can show "session expired" toast
     window.dispatchEvent(new CustomEvent("session-expired"));
-    // Redirect to home page after short delay
+    // Send them back to the storefront they were in, not the other one's home.
+    const destination = storefrontRoot(currentPath);
     setTimeout(() => {
-      window.location.href = "/";
+      window.location.href = destination;
     }, 1500);
   }
   // On public pages — just clear tokens silently, no redirect

@@ -1,10 +1,11 @@
 "use client";
+import { authHref } from "@/lib/authRedirect";
 import AddressFormModal from "@/components/ui/AddressFormModal";
 import api from "@/lib/api";
 import { getOrCreateSessionId } from "@/lib/session";
 import { formatCurrency } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
-import { useCartStore } from "@/store/cartStore";
+import { useGroceryCart } from "@/store/cartStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     AlertTriangle,
@@ -161,7 +162,7 @@ function AddressCard({
 export default function CheckoutPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { cart, fetchCart } = useCartStore();
+    const { cart, fetchCart } = useGroceryCart();
     const { isAuthenticated, hasHydrated } = useAuthStore();
 
     const [orderType, setOrderType] = useState<"delivery" | "pickup">(
@@ -189,7 +190,7 @@ export default function CheckoutPage() {
 
     useEffect(() => {
         if (!hasHydrated) return;
-        if (!isAuthenticated) router.push("/login");
+        if (!isAuthenticated) router.push(authHref("/login", "/shop/checkout"));
         else {
             fetchCart();
             api.get("/cart/validate/")

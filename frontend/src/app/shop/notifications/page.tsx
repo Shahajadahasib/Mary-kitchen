@@ -1,5 +1,6 @@
 "use client";
 
+import { authHref } from "@/lib/authRedirect";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -25,7 +26,7 @@ export default function NotificationsPage() {
   const { isAuthenticated, hasHydrated } = useAuthStore();
 
   useEffect(() => {
-    if (hasHydrated && !isAuthenticated) router.replace("/login");
+    if (hasHydrated && !isAuthenticated) router.replace(authHref("/login", "/shop/notifications"));
   }, [hasHydrated, isAuthenticated, router]);
 
   const { data, isLoading } = useQuery({

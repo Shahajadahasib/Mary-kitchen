@@ -1,4 +1,5 @@
 "use client";
+import { authHref } from "@/lib/authRedirect";
 import AddressFormModal from "@/components/ui/AddressFormModal";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -97,7 +98,7 @@ export default function ProfilePage() {
     if (!user)
         return (
             <div className="container-xl py-20 text-center">
-                <Link href="/login" className="btn-primary">
+                <Link href={authHref("/login", "/shop/profile")} className="btn-primary">
                     Please Login
                 </Link>
             </div>

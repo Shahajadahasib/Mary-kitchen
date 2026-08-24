@@ -4,6 +4,8 @@ import { useStoreProfile } from "@/hooks/useStoreProfile";
 import { useAuthStore } from "@/store/authStore";
 import { Mail, MapPin, Phone, Shield, ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { authHref } from "@/lib/authRedirect";
 import { FaFacebook, FaGlobe, FaInstagram } from "react-icons/fa6";
 
 const SHOP_LINKS = [
@@ -14,10 +16,6 @@ const SHOP_LINKS = [
     { label: "Rice & Grains", href: "/shop/products?category=rice-grains" },
 ];
 
-const ACCOUNT_LINKS_GUEST = [
-    { label: "Login", href: "/login" },
-    { label: "Register", href: "/register" },
-];
 
 const ACCOUNT_LINKS_AUTH = [
     { label: "My Orders", href: "/shop/orders" },
@@ -49,10 +47,15 @@ export default function Footer() {
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const hasHydrated = useAuthStore((s) => s.hasHydrated);
     const { data: store } = useStoreProfile();
+    const pathname = usePathname();
+    // Guests get sent back to wherever they were once they sign in.
     const accountLinks =
         hasHydrated && isAuthenticated
             ? ACCOUNT_LINKS_AUTH
-            : ACCOUNT_LINKS_GUEST;
+            : [
+                  { label: "Login", href: authHref("/login", pathname) },
+                  { label: "Register", href: authHref("/register", pathname) },
+              ];
 
     const storeName = store?.name || "Mary Kitchen";
     const description =

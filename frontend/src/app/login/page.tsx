@@ -1,9 +1,10 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/store/authStore";
+import { authHref, resolveNextPath } from "@/lib/authRedirect";
 import { Eye, EyeOff, Loader2, ShoppingBag } from "lucide-react";
 
 function loginErrorMessage(err: unknown): string {
@@ -24,8 +25,11 @@ function loginErrorMessage(err: unknown): string {
   return "Login failed";
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Where to land after signing in — the storefront the user came from, or the hub.
+  const nextPath = resolveNextPath(searchParams);
   const { login } = useAuthStore();
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -39,7 +43,7 @@ export default function LoginPage() {
     try {
       await login(form.email, form.password);
       toast.success("Welcome back!", { id: "login-success" });
-      router.push("/");
+      router.push(nextPath);
     } catch (err) {
       const message = loginErrorMessage(err);
       toast.error(message, { id: "login-error" });
@@ -109,12 +113,24 @@ export default function LoginPage() {
           </form>
           <p className="text-center text-sm text-gray-500 mt-5">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-primary-700 font-medium hover:underline">
+            <Link
+              href={authHref("/register", nextPath)}
+              className="text-primary-700 font-medium hover:underline"
+            >
               Register
             </Link>
           </p>
         </div>
       </div>
     </div>
+  );
+}
+
+// useSearchParams() needs a Suspense boundary for static rendering.
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

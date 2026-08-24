@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { authHref } from "@/lib/authRedirect";
 import { ChefHat, ShoppingBasket } from "lucide-react";
 import ScrollToTop from "@/components/layout/ScrollToTop";
 import { useStoreProfile } from "@/hooks/useStoreProfile";
@@ -27,6 +29,7 @@ export default function RestaurantLayout({
     const { data: store } = useStoreProfile();
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const hasHydrated = useAuthStore((s) => s.hasHydrated);
+    const pathname = usePathname();
     const signedIn = hasHydrated && isAuthenticated;
 
     return (
@@ -66,7 +69,7 @@ export default function RestaurantLayout({
                                 Grocery shop
                             </Link>
                             <Link
-                                href={signedIn ? "/shop/orders" : "/login"}
+                                href={signedIn ? "/shop/orders" : authHref("/login", pathname)}
                                 className="font-medium text-white/90 hover:text-white transition-colors"
                             >
                                 {signedIn ? "My orders" : "Sign in"}

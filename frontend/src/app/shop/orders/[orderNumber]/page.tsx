@@ -7,7 +7,7 @@ import {
     getStatusColor,
     orderStatusLabel,
 } from "@/lib/utils";
-import { useCartStore } from "@/store/cartStore";
+import { useGroceryCart } from "@/store/cartStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     CheckCircle,
@@ -53,7 +53,7 @@ export default function OrderDetailPage() {
         const num = Array.isArray(orderNumber) ? orderNumber[0] : orderNumber;
         queryClient.invalidateQueries({ queryKey: ["order", num] });
         toast.success("Payment complete");
-        void useCartStore.getState().fetchCart();
+        void useGroceryCart.getState().fetchCart();
         window.history.replaceState({}, "", `/orders/${num}`);
     }, [orderNumber, queryClient]);
 
