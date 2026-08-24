@@ -8,6 +8,11 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      screens: {
+        // Height-based variant for laptops with little vertical room, so the
+        // single-screen hub can shed padding instead of growing a scrollbar.
+        short: { raw: "(max-height: 720px)" },
+      },
       colors: {
         brand: {
           50: "#fef9ee",

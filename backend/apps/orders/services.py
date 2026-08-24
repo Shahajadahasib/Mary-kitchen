@@ -7,6 +7,8 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+from core.frontend_urls import order_path
+
 from apps.cart.models import Cart
 from apps.delivery.services import get_delivery_fee
 from apps.products.models import Product, ProductVariant
@@ -48,7 +50,8 @@ def rollback_checkout_order(order: Order) -> None:
             pass
 
     for item in order.items.select_related("product", "variant"):
-        if item.was_out_of_stock:
+        if item.was_out_of_stock or item.product_id is None:
+            # Menu-item lines (restaurant channel) never deduct stock — nothing to restore.
             continue
         stock_obj: Product | ProductVariant = item.variant if item.variant_id else item.product
         stock_obj.stock_quantity += item.quantity
@@ -57,13 +60,21 @@ def rollback_checkout_order(order: Order) -> None:
 
 
 @transaction.atomic
-def create_order_from_cart(user, order_type: str, address_id=None, notes: str = "", session_id: str = "") -> Order:
+def create_order_from_cart(
+    user, order_type: str, address_id=None, notes: str = "", session_id: str = "", channel: str = "grocery"
+) -> Order:
     """
-    Convert the user's cart into a confirmed Order.
-    Reduces stock on in-stock items.
-    Flags out-of-stock items but still allows order.
+    Convert the user's (channel-scoped) cart into a confirmed Order.
+
+    Grocery lines: reduce stock on in-stock items, flag out-of-stock items
+    but still allow the order. Restaurant lines: no stock to deduct — a dish
+    is simply excluded if it's gone off the menu (inactive) or 86'd today
+    (unavailable) between add-to-cart and checkout.
     """
-    cart = Cart.objects.prefetch_related("items__product", "items__variant").get(user=user)
+    cart = (
+        Cart.objects.prefetch_related("items__product", "items__variant", "items__menu_item")
+        .get(user=user, channel=channel)
+    )
 
     if not cart.items.exists():
         raise ValueError("Cannot checkout with an empty cart.")
@@ -111,6 +122,7 @@ def create_order_from_cart(user, order_type: str, address_id=None, notes: str = 
 
     order = Order.objects.create(
         user=user,
+        channel=channel,
         order_type=order_type,
         delivery_address=delivery_address_snapshot,
         delivery_zone_name=zone_name,
@@ -125,7 +137,31 @@ def create_order_from_cart(user, order_type: str, address_id=None, notes: str = 
     has_oos = False
     excluded_names = []
 
-    for item in cart.items.select_related("product", "variant"):
+    for item in cart.items.select_related("product", "variant", "menu_item"):
+        if item.menu_item_id:
+            menu_item = item.menu_item
+
+            # Skip dishes taken off the menu or 86'd since being added to the cart.
+            if not menu_item.is_active or not menu_item.is_available:
+                excluded_names.append(menu_item.name)
+                continue
+
+            from apps.menu.services import modifiers_label, modifiers_total
+
+            unit_price = menu_item.base_price + modifiers_total(item.selected_modifiers)
+
+            OrderItem.objects.create(
+                order=order,
+                menu_item=menu_item,
+                selected_modifiers=item.selected_modifiers,
+                product_name=menu_item.name,
+                variant_name=modifiers_label(item.selected_modifiers),
+                unit_price=unit_price,
+                quantity=item.quantity,
+                was_out_of_stock=False,
+            )
+            continue
+
         product = item.product
         variant = item.variant
 
@@ -264,7 +300,7 @@ def update_order_status(order: Order, new_status: str, changed_by, note: str = "
             title=order_status_notification_title(new_status, order.order_type),
             message=order_status_notification_message(order.order_number, new_status, order.order_type),
             notification_type="order_update",
-            action_url=f"/orders/{order.order_number}",
+            action_url=order_path(order),
             metadata={"order_number": order.order_number, "status": new_status},
         )
     except Exception:

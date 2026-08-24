@@ -1,5 +1,17 @@
 version: "3.9"
 
+# One stack for both the VPS and a developer machine.
+#
+# The ${VAR:-default} defaults below are the PRODUCTION values, so the server
+# needs no extra configuration: .github/workflows/deploy.yml just runs
+# `docker-compose up -d --build` and gets exactly what it always got.
+#
+# A developer machine overrides them with a root-level `.env` file (gitignored,
+# so it never reaches the server). See the README for the three lines it needs.
+# Note that root `.env` is read by Compose itself for the substitutions below,
+# and is a different file from `backend/.env`, which is passed *into* the
+# backend container via `env_file`.
+
 services:
   # ─── PostgreSQL ──────────────────────────────────────────────────────────────
   db:
@@ -41,7 +53,7 @@ services:
     restart: unless-stopped
     env_file: ./backend/.env
     environment:
-      DJANGO_SETTINGS_MODULE: mary_kitchen.settings.production
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-mary_kitchen.settings.production}
       DB_HOST: db
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
@@ -54,7 +66,10 @@ services:
         condition: service_healthy
     volumes:
       - static_data:/app/staticfiles
-      - /var/www/Mary-kitchen/media:/app/media
+      # On the VPS this is a bind mount to the server's media directory; a dev
+      # machine sets MEDIA_VOLUME=media_data to use the named volume instead,
+      # since /var/www/... does not exist there.
+      - ${MEDIA_VOLUME:-/var/www/Mary-kitchen/media}:/app/media
 
   # ─── Celery Worker ────────────────────────────────────────────────────────────
   celery_worker:
@@ -65,7 +80,7 @@ services:
     restart: unless-stopped
     env_file: ./backend/.env
     environment:
-      DJANGO_SETTINGS_MODULE: mary_kitchen.settings.production
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-mary_kitchen.settings.production}
       DB_HOST: db
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
@@ -83,7 +98,7 @@ services:
     restart: unless-stopped
     env_file: ./backend/.env
     environment:
-      DJANGO_SETTINGS_MODULE: mary_kitchen.settings.production
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-mary_kitchen.settings.production}
       DB_HOST: db
     depends_on:
       - db
@@ -94,9 +109,16 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      # NEXT_PUBLIC_* is inlined into the browser bundle at build time (see the
+      # `env` block in next.config.js), so it must be a build arg — as a plain
+      # container env var it never reaches the client code. The value has to be
+      # reachable from the visitor's BROWSER: `backend` is a Compose service
+      # name that only resolves container-to-container, never in a browser.
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:8000/api/v1}
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: http://backend:8000/api/v1
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:8000/api/v1}
     ports:
       - "3000:3000"
     depends_on:

@@ -9,6 +9,7 @@ import Cookies from "js-cookie";
 import api from "@/lib/api";
 import { getApiErrorMessage } from "@/lib/getApiErrorMessage";
 import { useAuthStore } from "@/store/authStore";
+import { authHref, resolveNextPath } from "@/lib/authRedirect";
 
 const RESEND_COOLDOWN = 30;
 const REDIRECT_DELAY = 4;
@@ -16,6 +17,8 @@ const REDIRECT_DELAY = 4;
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Set by whichever storefront sent the user into the auth flow.
+  const nextPath = resolveNextPath(searchParams);
   const { fetchProfile } = useAuthStore();
 
   const [email, setEmail] = useState(searchParams.get("email") || "");
@@ -27,7 +30,7 @@ function VerifyEmailContent() {
   const [redirectIn, setRedirectIn] = useState(REDIRECT_DELAY);
 
   const resendTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const redirectDest = useRef("/");
+  const redirectDest = useRef(nextPath);
 
   useEffect(() => () => { if (resendTimer.current) clearInterval(resendTimer.current); }, []);
 
@@ -59,14 +62,14 @@ function VerifyEmailContent() {
       await api.post("/auth/otp/verify/", { email, code: verifyCode, purpose: "email_verify" });
       const hasToken = !!Cookies.get("access_token");
       if (hasToken) await fetchProfile();
-      redirectDest.current = hasToken ? "/" : "/login";
+      redirectDest.current = hasToken ? nextPath : authHref("/login", nextPath);
       setVerified(true);
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, "Invalid verification code"));
     } finally {
       setLoading(false);
     }
-  }, [email, loading, fetchProfile]);
+  }, [email, loading, fetchProfile, nextPath]);
 
   const resend = async () => {
     if (!email || resending || resendCooldown > 0) return;
@@ -171,7 +174,11 @@ function VerifyEmailContent() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => router.push(Cookies.get("access_token") ? "/" : "/login")}
+                  onClick={() =>
+                    router.push(
+                      Cookies.get("access_token") ? nextPath : authHref("/login", nextPath)
+                    )
+                  }
                   className="w-full text-sm text-gray-400 hover:text-gray-600 hover:underline"
                 >
                   Skip for now

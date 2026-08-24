@@ -12,7 +12,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         fields = [
-            "id", "product", "variant", "product_name", "variant_name",
+            "id", "product", "variant", "menu_item", "selected_modifiers",
+            "product_name", "variant_name",
             "unit_price", "quantity", "refunded_quantity", "refundable_quantity",
             "line_total", "was_out_of_stock",
         ]
@@ -38,7 +39,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            "id", "order_number", "status", "order_type",
+            "id", "order_number", "channel", "status", "order_type",
             "delivery_address", "delivery_zone_name", "delivery_fee", "distance_km",
             "subtotal", "discount_amount", "total_amount", "refunded_amount",
             "payment_status", "stripe_payment_intent_id",
@@ -54,6 +55,7 @@ class OrderSerializer(serializers.ModelSerializer):
 class CheckoutSerializer(serializers.Serializer):
     """Payload for initiating a checkout."""
     order_type = serializers.ChoiceField(choices=["delivery", "pickup"])
+    channel = serializers.ChoiceField(choices=["grocery", "restaurant"], default="grocery")
     address_id = serializers.UUIDField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_blank=True)
     session_id = serializers.CharField(required=False, allow_blank=True, max_length=255)

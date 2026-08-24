@@ -69,6 +69,39 @@
   @apply animate-pulse bg-gray-200 rounded;
 }
 
+/* ── Entrance animations ─────────────────────────────────────────────────────
+   Deliberately understated: a short fade with a few pixels of travel. Elements
+   start at opacity 0, so `animation-fill-mode: both` matters — without it they
+   would flash at full opacity before a staggered delay elapses. */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out both;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Honour the OS "reduce motion" setting: show the final state immediately
+   rather than animating into it. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-fade-in-up {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* Google Places autocomplete dropdown — must float above modals (z-50) */
 .pac-container {
   z-index: 99999 !important;

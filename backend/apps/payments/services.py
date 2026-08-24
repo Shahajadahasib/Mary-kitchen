@@ -4,6 +4,8 @@ from decimal import ROUND_HALF_UP, Decimal
 from django.conf import settings
 from django.db import transaction
 
+from core.frontend_urls import checkout_cancel_url, checkout_success_url
+
 from apps.cart.models import Cart
 from apps.orders.models import Order
 from .models import Payment
@@ -78,9 +80,10 @@ def _checkout_line_items(order: Order) -> list:
 
 def create_checkout_session(order: Order) -> dict:
     """Create a hosted Stripe Checkout Session for an order (full-page pay on stripe.com)."""
-    base = settings.FRONTEND_URL.rstrip("/")
-    success_url = f"{base}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{base}/checkout?canceled=1"
+    # Channel-aware: a restaurant order must return to /restaurant/checkout/...,
+    # not the grocery shop's checkout pages.
+    success_url = checkout_success_url(order)
+    cancel_url = checkout_cancel_url(order)
 
     session = stripe.checkout.Session.create(
         mode="payment",
@@ -284,7 +287,7 @@ def handle_payment_success(payment_intent_id: str) -> Payment | None:
 
 def _clear_user_cart(order: Order) -> None:
     try:
-        cart = Cart.objects.get(user=order.user)
+        cart = Cart.objects.get(user=order.user, channel=order.channel)
         cart.clear()
     except Cart.DoesNotExist:
         pass

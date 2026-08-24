@@ -12,16 +12,19 @@ import {
     ShoppingCart,
     Tag,
     Truck,
+    UtensilsCrossed,
     Users,
     X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { authHref } from "@/lib/authRedirect";
 import { useEffect, useState } from "react";
 
 const NAV_ITEMS = [
     { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { label: "Products", href: "/admin/products", icon: Package },
+    { label: "Menu", href: "/admin/menu", icon: UtensilsCrossed },
     { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
     { label: "Users", href: "/admin/users", icon: Users },
     { label: "Categories", href: "/admin/categories", icon: Tag },
@@ -42,7 +45,7 @@ export default function AdminLayout({
 
     useEffect(() => {
         if (!hasHydrated) return;
-        if (!isAuthenticated) router.push("/login");
+        if (!isAuthenticated) router.push(authHref("/login", pathname));
         else if (user && !user.is_staff) router.push("/");
     }, [hasHydrated, isAuthenticated, user?.is_staff]);
 
@@ -73,6 +76,7 @@ export default function AdminLayout({
 
     const handleLogout = async () => {
         await logout();
+        // Deliberate sign-out — don't bounce them back into admin afterwards.
         router.push("/login");
     };
 

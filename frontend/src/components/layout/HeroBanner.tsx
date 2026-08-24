@@ -35,13 +35,13 @@ export default function HeroBanner() {
                     {/* Buttons */}
                     <div className="flex flex-wrap gap-3 sm:gap-4">
                         <Link
-                            href="/products"
+                            href="/shop/products"
                             className="bg-brand-500 hover:bg-brand-600 text-white font-bold px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl transition-colors flex items-center gap-2 shadow-lg text-sm sm:text-base"
                         >
                             Shop Now <ArrowRight className="w-4 h-4" />
                         </Link>
                         <Link
-                            href="/products?category=fish-seafood"
+                            href="/shop/products?category=fish-seafood"
                             className="bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white font-semibold px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl transition-colors border border-white/20 text-sm sm:text-base"
                         >
                             Fresh Fish Today

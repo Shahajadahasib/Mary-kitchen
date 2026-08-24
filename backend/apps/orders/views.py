@@ -52,6 +52,7 @@ class CheckoutView(APIView):
                     address_id=d.get("address_id"),
                     notes=d.get("notes", ""),
                     session_id=d.get("session_id", ""),
+                    channel=d.get("channel", "grocery"),
                 )
                 try:
                     payment = create_checkout_session(order)
@@ -77,16 +78,27 @@ class CheckoutView(APIView):
 
 
 class OrderListView(generics.ListAPIView):
-    """GET /api/v1/orders/ – current user's order history."""
+    """
+    GET /api/v1/orders/?channel=grocery|restaurant – current user's order history.
+
+    A customer's account spans both storefronts, so each storefront's order
+    screen must ask for its own channel — otherwise the restaurant would list
+    grocery orders and vice versa. Omitting `channel` returns every order,
+    which keeps any existing caller working unchanged.
+    """
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return (
+        qs = (
             Order.objects.filter(user=self.request.user)
             .prefetch_related("items", "status_history")
             .order_by("-created_at")
         )
+        channel = (self.request.query_params.get("channel") or "").strip().lower()
+        if channel in dict(Order.CHANNEL_CHOICES):
+            qs = qs.filter(channel=channel)
+        return qs
 
 
 class OrderDetailView(generics.RetrieveAPIView):
@@ -129,7 +141,7 @@ class AdminOrderListView(generics.ListAPIView):
     serializer_class = AdminOrderSerializer
     permission_classes = ADMIN_API_PERMISSION_CLASSES
     search_fields = ["order_number", "user__email"]
-    filterset_fields = ["status", "order_type", "payment_status", "has_out_of_stock_items"]
+    filterset_fields = ["status", "order_type", "payment_status", "has_out_of_stock_items", "channel"]
     ordering_fields = ["created_at", "total_amount"]
 
     def get_queryset(self):

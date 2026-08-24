@@ -23,6 +23,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
+const CHANNEL_TABS = [
+    { value: "", label: "All orders" },
+    { value: "grocery", label: "Grocery" },
+    { value: "restaurant", label: "Restaurant" },
+] as const;
+
 const ALL_STATUSES = [
     "pending",
     "confirmed",
@@ -93,6 +99,8 @@ function AdminOrdersPageInner() {
     const qc = useQueryClient();
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
+    // "" = both businesses. AdminOrderListView already filters on channel.
+    const [channelFilter, setChannelFilter] = useState("");
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
     const [newStatus, setNewStatus] = useState("");
     const [note, setNote] = useState("");
@@ -111,11 +119,12 @@ function AdminOrdersPageInner() {
     const [refunding, setRefunding] = useState(false);
 
     const { data, isLoading } = useQuery({
-        queryKey: ["admin-orders", search, statusFilter],
+        queryKey: ["admin-orders", search, statusFilter, channelFilter],
         queryFn: () => {
             const params = new URLSearchParams();
             if (search) params.set("search", search);
             if (statusFilter) params.set("status", statusFilter);
+            if (channelFilter) params.set("channel", channelFilter);
             return api
                 .get(`/orders/admin/orders/?${params}`)
                 .then((r) => r.data);
@@ -291,6 +300,37 @@ function AdminOrdersPageInner() {
                 </div>
             </div>
 
+            {/* Channel tabs — one storefront at a time, or both together.
+                Staff fulfilling grocery deliveries and staff plating restaurant
+                takeaway are working different queues. */}
+            <div className="px-3 sm:px-4 pt-3">
+                <div
+                    role="tablist"
+                    aria-label="Filter orders by business"
+                    className="inline-flex rounded-lg bg-gray-100 p-1"
+                >
+                    {CHANNEL_TABS.map((tab) => {
+                        const active = channelFilter === tab.value;
+                        return (
+                            <button
+                                key={tab.value}
+                                role="tab"
+                                type="button"
+                                aria-selected={active}
+                                onClick={() => setChannelFilter(tab.value)}
+                                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                                    active
+                                        ? "bg-white text-gray-900 shadow-sm"
+                                        : "text-gray-500 hover:text-gray-700"
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
             {/* Filters */}
             <div className="p-3 sm:p-4 flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
@@ -402,6 +442,22 @@ function AdminOrdersPageInner() {
                                                     <AlertTriangle className="w-3.5 h-3.5 text-orange-500 shrink-0" />
                                                 )}
                                             </div>
+                                            {/* Which business this order belongs to.
+                                                Only worth showing while both are
+                                                listed together. */}
+                                            {!channelFilter && (
+                                                <span
+                                                    className={`badge mt-1 text-[10px] ${
+                                                        order.channel === "restaurant"
+                                                            ? "bg-brand-100 text-brand-800"
+                                                            : "bg-primary-100 text-primary-800"
+                                                    }`}
+                                                >
+                                                    {order.channel === "restaurant"
+                                                        ? "Restaurant"
+                                                        : "Grocery"}
+                                                </span>
+                                            )}
                                         </td>
 
                                         {/* Customer */}

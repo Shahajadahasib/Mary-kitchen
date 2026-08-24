@@ -27,9 +27,14 @@ class Order(BaseModel):
         ("partially_refunded", "Partially Refunded"),
         ("failed", "Failed"),
     ]
+    CHANNEL_CHOICES = [
+        ("grocery", "Grocery"),
+        ("restaurant", "Restaurant"),
+    ]
 
     user = models.ForeignKey("users.User", on_delete=models.PROTECT, related_name="orders")
     order_number = models.CharField(max_length=20, unique=True, db_index=True)
+    channel = models.CharField(max_length=20, choices=CHANNEL_CHOICES, default="grocery", db_index=True)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True)
     order_type = models.CharField(max_length=10, choices=ORDER_TYPE_CHOICES, default="delivery")
@@ -105,12 +110,29 @@ class Order(BaseModel):
 
 
 class OrderItem(BaseModel):
-    """A line item within an order."""
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
-    product = models.ForeignKey("products.Product", on_delete=models.PROTECT)
-    variant = models.ForeignKey("products.ProductVariant", on_delete=models.SET_NULL, null=True, blank=True)
+    """A line item within an order — either a grocery product/variant, or a
+    restaurant menu item with a snapshot of its selected modifiers.
 
-    # Snapshot fields (price may change later)
+    Exactly one of ``product`` / ``menu_item`` is set per row, enforced in
+    ``orders.services.create_order_from_cart`` rather than a DB constraint
+    (mirrors how the delivery address is stored as a JSON snapshot rather
+    than a live FK — see ``Order.delivery_address``).
+    """
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
+    product = models.ForeignKey("products.Product", on_delete=models.PROTECT, null=True, blank=True)
+    variant = models.ForeignKey("products.ProductVariant", on_delete=models.SET_NULL, null=True, blank=True)
+    menu_item = models.ForeignKey(
+        "menu.MenuItem", on_delete=models.PROTECT, null=True, blank=True, related_name="order_items"
+    )
+    selected_modifiers = models.JSONField(
+        default=list, blank=True,
+        help_text="Snapshot: [{modifier_id, group, name, price_delta}, ...] — menu items only",
+    )
+
+    # Snapshot fields (price may change later). For a menu item, product_name
+    # holds the dish name and variant_name holds a human-readable modifier
+    # summary (e.g. "Large, Extra cheese") — reused rather than duplicated so
+    # Stripe line items, the PDF slip, and admin stats need no branching.
     product_name = models.CharField(max_length=500)
     variant_name = models.CharField(max_length=200, blank=True)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)

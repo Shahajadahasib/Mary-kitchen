@@ -1,11 +1,22 @@
-name: CI
+name: CI/CD
 
+# Everything lives in one workflow on purpose: the deploy job gates on the
+# test jobs via `needs:`, so a red check makes the deploy physically
+# unreachable. Two separate workflows could not express that ordering — the
+# old deploy.yml triggered on the same push as CI and raced it.
 on:
     push:
-        branches: [main, develop]
+        branches: [main]
     pull_request:
-        branches: [main, develop]
-    workflow_call:
+        branches: [main]
+    workflow_dispatch:
+
+# Never let two deploys touch the VPS at once. Queue them instead of
+# cancelling, so an in-flight deploy is always allowed to finish or roll back
+# cleanly rather than being killed halfway through a migration.
+concurrency:
+    group: cicd-${{ github.ref }}
+    cancel-in-progress: false
 
 jobs:
     backend:
@@ -55,7 +66,7 @@ jobs:
             REDIS_URL: redis://localhost:6379/0
             CELERY_BROKER_URL: redis://localhost:6379/1
             CELERY_RESULT_BACKEND: redis://localhost:6379/2
-            EMAIL_BACKEND: django.core.mail.backends.dummy.EmailBackend
+            EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend
             STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
             STRIPE_SECRET_KEY: sk_test_placeholder
             STRIPE_WEBHOOK_SECRET: whsec_placeholder
@@ -77,9 +88,20 @@ jobs:
             - name: Check no missing migrations
               run: python manage.py makemigrations --check --dry-run
 
+            - name: Check production settings load
+              # CI otherwise only ever exercises settings.development, so a
+              # production-only misconfiguration would first surface on the VPS.
+              env:
+                  DJANGO_SETTINGS_MODULE: mary_kitchen.settings.production
+                  DEBUG: "False"
+                  ALLOWED_HOSTS: example.com
+                  CORS_ALLOWED_ORIGINS: https://example.com
+              run: python manage.py check --deploy --fail-level ERROR
+
             - run: python manage.py migrate
 
-            - run: python manage.py test
+            - name: Run tests
+              run: python manage.py test --verbosity 2
 
     frontend:
         name: Frontend (Next.js)
@@ -102,8 +124,81 @@ jobs:
 
             - run: npm run lint
 
+            - name: Typecheck
+              run: npx tsc --noEmit
+
             - name: Build
               env:
                   NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
                   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
               run: npm run build
+
+    docker:
+        name: Docker images build
+        runs-on: ubuntu-latest
+        # The VPS deploys from these Dockerfiles, but the jobs above build
+        # natively — without this job a broken Dockerfile passes CI and only
+        # fails once it is already taking production down.
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: docker/setup-buildx-action@v3
+
+            - name: Build backend image
+              uses: docker/build-push-action@v6
+              with:
+                  context: ./backend
+                  push: false
+                  load: false
+                  cache-from: type=gha,scope=backend
+                  cache-to: type=gha,scope=backend,mode=max
+
+            - name: Build frontend image
+              uses: docker/build-push-action@v6
+              with:
+                  context: ./frontend
+                  push: false
+                  load: false
+                  build-args: |
+                      NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+                  cache-from: type=gha,scope=frontend
+                  cache-to: type=gha,scope=frontend,mode=max
+
+    deploy:
+        name: Deploy to VPS
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        needs: [backend, frontend, docker]
+        # Belt and braces: `needs` guarantees the checks passed, and this `if`
+        # guarantees only a real push to main can deploy — never a pull request
+        # build, and never a manual dispatch from a side branch.
+        if: >-
+            github.event_name == 'push' &&
+            github.ref == 'refs/heads/main'
+
+        steps:
+            - name: Deploy
+              uses: appleboy/ssh-action@v1.0.3
+              env:
+                  DEPLOY_SHA: ${{ github.sha }}
+              with:
+                  host: ${{ secrets.VPS_HOST }}
+                  username: ${{ secrets.VPS_USER }}
+                  key: ${{ secrets.VPS_SSH_KEY }}
+                  port: 22
+                  timeout: 120s
+                  command_timeout: 25m
+                  envs: DEPLOY_SHA
+                  script_stop: true
+                  script: |
+                      set -euo pipefail
+                      cd /var/www/Mary-kitchen
+                      git fetch origin --prune
+                      # Read the deploy script straight out of the commit being
+                      # deployed, into a file outside the working tree. Two
+                      # reasons: the checkout on the box may predate the script
+                      # existing at all, and bash reads a script incrementally —
+                      # letting the deploy overwrite the file it is currently
+                      # executing is a genuine way to corrupt a release.
+                      git show "$DEPLOY_SHA:deploy/deploy.sh" > /tmp/mary-kitchen-deploy.sh
+                      bash /tmp/mary-kitchen-deploy.sh "$DEPLOY_SHA"

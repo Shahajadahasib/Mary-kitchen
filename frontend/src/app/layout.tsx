@@ -2,75 +2,47 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
+import JsonLd from "@/components/seo/JsonLd";
+import { organizationSchema, websiteSchema } from "@/lib/schema";
+import { SITE_URL } from "@/lib/seo";
 
+/**
+ * Brand-level defaults only.
+ *
+ * This layout wraps BOTH storefronts and the hub, so anything grocery-specific
+ * belongs in `shop/layout.tsx`, not here. Each segment overrides title,
+ * description and canonical; the template below supplies the suffix.
+ */
 export const metadata: Metadata = {
     title: {
-        default: "Mary Ben's Kitchen | Fresh Groceries Delivered in Darwin NT",
+        default: "Mary Ben's Kitchen | Grocery Shop & Restaurant in Darwin NT",
         template: "%s | Mary Ben's Kitchen Darwin",
     },
+    description:
+        "Mary Ben's Kitchen in Darwin NT — a grocery shop delivering fresh fish, meat and pantry staples, and a restaurant cooking home-style meals for takeaway and delivery.",
     icons: {
         icon: "/favicon.ico",
         apple: "/apple-touch-icon.png",
     },
-    description:
-        "Darwin's local grocery & food marketplace. Fresh fish, meats, vegetables, rice and more delivered to your door in Darwin NT, Australia.",
-    keywords: [
-        // Primary Darwin keywords
-        "grocery delivery Darwin",
-        "grocery delivery Darwin NT",
-        "food delivery Darwin NT",
-        "online grocery Darwin",
-        "Darwin grocery store",
-        "Darwin NT grocery",
-        // Product keywords
-        "fresh fish Darwin",
-        "fresh fish delivery Darwin",
-        "fresh meat Darwin NT",
-        "vegetables Darwin",
-        "African food Darwin",
-        "African grocery Darwin NT",
-        "rice delivery Darwin",
-        "seafood Darwin NT",
-        // Suburb keywords
-        "grocery delivery Winnellie",
-        "grocery delivery Palmerston",
-        "grocery delivery Casuarina",
-        "grocery delivery Nightcliff",
-        "grocery delivery Stuart Park",
-        // Store name
-        "Marybens Kitchen",
-        "Mary Bens Kitchen Darwin",
-        "Mary Kitchen Darwin",
-        // Long tail
-        "fresh food delivery Darwin Australia",
-        "same day grocery delivery Darwin",
-        "next day delivery Darwin NT",
-    ],
     authors: [{ name: "Mary Ben's Kitchen" }],
     creator: "Mary Ben's Kitchen",
-    metadataBase: new URL("https://marybenskitchen.com"),
+    metadataBase: new URL(SITE_URL),
     openGraph: {
         type: "website",
         locale: "en_AU",
-        url: "https://marybenskitchen.com",
+        url: SITE_URL,
         siteName: "Mary Ben's Kitchen",
-        title: "Mary Ben's Kitchen | Fresh Groceries Delivered in Darwin NT",
-        description:
-            "Darwin's local grocery & food marketplace. Fresh fish, meats, vegetables, rice and more delivered to your door.",
         images: [
             {
                 url: "/og-image.jpg",
                 width: 1200,
                 height: 630,
-                alt: "Mary Ben's Kitchen — Fresh Groceries Darwin NT",
+                alt: "Mary Ben's Kitchen — Darwin NT",
             },
         ],
     },
     twitter: {
         card: "summary_large_image",
-        title: "Mary Ben's Kitchen | Fresh Groceries Darwin NT",
-        description:
-            "Fresh fish, meats, vegetables and more delivered in Darwin NT Australia.",
         images: ["/og-image.jpg"],
     },
     robots: {
@@ -84,13 +56,10 @@ export const metadata: Metadata = {
             "max-snippet": -1,
         },
     },
-    alternates: {
-        canonical: "https://marybenskitchen.com",
-    },
+    alternates: { canonical: SITE_URL },
     verification: {
         google: "ITgkbC6xr62PlRoWNDQcgj3aB0NjwIq1cdLbCKssxyI",
     },
-    category: "grocery",
 };
 
 const inter = Inter({ subsets: ["latin"] });
@@ -103,102 +72,12 @@ export default function RootLayout({
     return (
         <html lang="en-AU">
             <head>
-                {/* Local Business Structured Data */}
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{
-                        __html: JSON.stringify({
-                            "@context": "https://schema.org",
-                            "@type": "GroceryStore",
-                            name: "Marybens Kitchen",
-                            description:
-                                "Darwin's local grocery & food marketplace. Fresh fish, meats, vegetables and more.",
-                            url: "https://marybenskitchen.com",
-                            telephone: "+61415365680",
-                            email: "darwindsfood@gmail.com",
-                            address: {
-                                "@type": "PostalAddress",
-                                streetAddress: "8/63 Winnellie Rd",
-                                addressLocality: "Winnellie",
-                                addressRegion: "NT",
-                                postalCode: "0820",
-                                addressCountry: "AU",
-                            },
-                            geo: {
-                                "@type": "GeoCoordinates",
-                                latitude: -12.4634,
-                                longitude: 130.8456,
-                            },
-                            openingHoursSpecification: [
-                                {
-                                    "@type": "OpeningHoursSpecification",
-                                    dayOfWeek: [
-                                        "Monday",
-                                        "Tuesday",
-                                        "Wednesday",
-                                        "Thursday",
-                                        "Friday",
-                                    ],
-                                    opens: "09:00",
-                                    closes: "17:00",
-                                },
-                                {
-                                    "@type": "OpeningHoursSpecification",
-                                    dayOfWeek: ["Saturday"],
-                                    opens: "10:00",
-                                    closes: "15:00",
-                                },
-                            ],
-                            servesCuisine: [
-                                "Groceries",
-                                "Fresh Fish",
-                                "Seafood",
-                                "Meat",
-                                "Vegetables",
-                                "Rice",
-                                "Grains",
-                                "African Food",
-                            ],
-                            priceRange: "$$",
-                            areaServed: {
-                                "@type": "City",
-                                name: "Darwin",
-                                containedIn: "Northern Territory, Australia",
-                            },
-                            hasMap: "https://maps.google.com/?q=8/63+Winnellie+Rd+Winnellie+NT+0820",
-                            offers: {
-                                "@type": "Offer",
-                                description:
-                                    "Fresh grocery delivery across Darwin NT",
-                                areaServed:
-                                    "Darwin, Northern Territory, Australia",
-                            },
-                        }),
-                    }}
-                />
-
-                {/* Delivery Service Schema */}
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{
-                        __html: JSON.stringify({
-                            "@context": "https://schema.org",
-                            "@type": "DeliveryEvent",
-                            name: "Grocery Delivery Darwin NT",
-                            description:
-                                "Same day and next day grocery delivery across Darwin NT",
-                            location: {
-                                "@type": "Place",
-                                address: {
-                                    "@type": "PostalAddress",
-                                    addressLocality: "Darwin",
-                                    addressRegion: "NT",
-                                    addressCountry: "AU",
-                                },
-                            },
-                        }),
-                    }}
-                />
+                {/* Site-wide only. The GroceryStore schema that used to live
+                    here now lives in shop/layout.tsx, and the restaurant has
+                    its own Restaurant schema — emitting GroceryStore on a
+                    restaurant page told search engines the wrong business. */}
+                <JsonLd data={organizationSchema()} />
+                <JsonLd data={websiteSchema()} />
             </head>
             <body className={inter.className}>
                 <Providers>{children}</Providers>
