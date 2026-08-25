@@ -34,6 +34,32 @@ from .services import (
 
 logger = logging.getLogger(__name__)
 
+VALID_CHANNELS = dict(Order.CHANNEL_CHOICES)
+
+
+def _requested_days(request, default: int = 7, maximum: int = 90) -> int:
+    try:
+        return max(1, min(int(request.query_params.get("days", default)), maximum))
+    except (TypeError, ValueError):
+        return default
+
+
+def _requested_channel(request) -> str | None:
+    """The `?channel=` filter for the admin stats endpoints.
+
+    Returns ``None`` for "both businesses", which is the default so existing
+    callers keep the numbers they always got. One Order table serves the
+    grocery shop and the restaurant, so without this every dashboard figure —
+    revenue, order count, AOV, top sellers, refunds — silently reports the two
+    businesses added together.
+    """
+    channel = (request.query_params.get("channel") or "").strip().lower()
+    return channel if channel in VALID_CHANNELS else None
+
+
+def _by_channel(queryset, channel: str | None, field: str = "channel"):
+    return queryset if channel is None else queryset.filter(**{field: channel})
+
 
 class CheckoutView(APIView):
     """POST /api/v1/orders/checkout/ – create order from cart."""
@@ -163,20 +189,19 @@ class AdminOrderDetailView(generics.RetrieveUpdateAPIView):
 
 
 class AdminRevenueView(APIView):
-    """GET /api/v1/orders/admin/revenue/?days=7
+    """GET /api/v1/orders/admin/revenue/?days=7&channel=grocery|restaurant
 
     Returns daily revenue totals for paid orders over the last N days (max 90).
     Days with zero revenue are included so the chart always shows a full range.
+    Omit `channel` for both businesses combined.
     Response shape: [{ "name": "Mon", "revenue": 450.00 }, ...]
     """
 
     permission_classes = ADMIN_API_PERMISSION_CLASSES
 
     def get(self, request):
-        try:
-            days = max(1, min(int(request.query_params.get("days", 7)), 90))
-        except (TypeError, ValueError):
-            days = 7
+        days = _requested_days(request)
+        channel = _requested_channel(request)
 
         # Use localdate() so TruncDate (which uses settings.TIME_ZONE) and
         # the loop iteration both operate in the same timezone.
@@ -187,10 +212,13 @@ class AdminRevenueView(APIView):
             output_field=DecimalField(max_digits=12, decimal_places=2),
         )
         rows = (
-            Order.objects.filter(
-                created_at__date__gte=since,
-                status="delivered",
-                payment_status__in=["paid", "partially_refunded"],
+            _by_channel(
+                Order.objects.filter(
+                    created_at__date__gte=since,
+                    status="delivered",
+                    payment_status__in=["paid", "partially_refunded"],
+                ),
+                channel,
             )
             .annotate(day=TruncDate("created_at"), net=net_amount)
             .values("day")
@@ -213,15 +241,16 @@ class AdminRevenueView(APIView):
 
 
 class AdminDashboardStatsView(APIView):
-    """GET /api/v1/orders/admin/stats/?days=7 – aggregate admin dashboard metrics."""
+    """GET /api/v1/orders/admin/stats/?days=7&channel=grocery|restaurant
+
+    Aggregate admin dashboard metrics. Omit `channel` for both businesses.
+    """
 
     permission_classes = ADMIN_API_PERMISSION_CLASSES
 
     def get(self, request):
-        try:
-            days = max(1, min(int(request.query_params.get("days", 7)), 90))
-        except (TypeError, ValueError):
-            days = 7
+        days = _requested_days(request)
+        channel = _requested_channel(request)
 
         now = timezone.now()
         current_start = now - datetime.timedelta(days=days)
@@ -232,16 +261,21 @@ class AdminDashboardStatsView(APIView):
             output_field=DecimalField(max_digits=12, decimal_places=2),
         )
 
-        current_orders = Order.objects.filter(created_at__gte=current_start)
+        current_orders = _by_channel(
+            Order.objects.filter(created_at__gte=current_start), channel
+        )
         current_revenue_qs = current_orders.filter(
             status="delivered",
             payment_status__in=["paid", "partially_refunded"],
         )
-        previous_revenue_qs = Order.objects.filter(
-            created_at__gte=previous_start,
-            created_at__lt=current_start,
-            status="delivered",
-            payment_status__in=["paid", "partially_refunded"],
+        previous_revenue_qs = _by_channel(
+            Order.objects.filter(
+                created_at__gte=previous_start,
+                created_at__lt=current_start,
+                status="delivered",
+                payment_status__in=["paid", "partially_refunded"],
+            ),
+            channel,
         )
 
         current_agg = current_revenue_qs.annotate(net=net_expr).aggregate(
@@ -273,20 +307,24 @@ class AdminDashboardStatsView(APIView):
                 "growth": float(growth),
                 "status_breakdown": status_breakdown,
                 "days": days,
+                "channel": channel or "all",
             }
         )
 
 
 class AdminTopProductsView(APIView):
-    """GET /api/v1/orders/admin/top-products/?days=7 – top products by paid revenue."""
+    """GET /api/v1/orders/admin/top-products/?days=7&channel=grocery|restaurant
+
+    Top sellers by paid revenue. Restaurant dishes reuse ``OrderItem.product_name``
+    for the dish name, so without `channel` this list ranks groceries and dishes
+    against each other in one table.
+    """
 
     permission_classes = ADMIN_API_PERMISSION_CLASSES
 
     def get(self, request):
-        try:
-            days = max(1, min(int(request.query_params.get("days", 7)), 90))
-        except (TypeError, ValueError):
-            days = 7
+        days = _requested_days(request)
+        channel = _requested_channel(request)
 
         since = timezone.localdate() - datetime.timedelta(days=days - 1)
         line_revenue = ExpressionWrapper(
@@ -295,10 +333,14 @@ class AdminTopProductsView(APIView):
         )
 
         rows = (
-            OrderItem.objects.filter(
-                order__created_at__date__gte=since,
-                order__payment_status="paid",
-                order__status="delivered",
+            _by_channel(
+                OrderItem.objects.filter(
+                    order__created_at__date__gte=since,
+                    order__payment_status="paid",
+                    order__status="delivered",
+                ),
+                channel,
+                field="order__channel",
             )
             .values("product_id", "product_name")
             .annotate(
@@ -322,7 +364,9 @@ class AdminTopProductsView(APIView):
 
 
 class AdminRefundStatsView(APIView):
-    """GET /api/v1/orders/admin/refund-stats/?days=7
+    """GET /api/v1/orders/admin/refund-stats/?days=7&channel=grocery|restaurant
+
+    Omit `channel` for both businesses combined.
 
     Returns:
       - total_refunds       – number of refunded orders in the period
@@ -334,10 +378,8 @@ class AdminRefundStatsView(APIView):
     permission_classes = ADMIN_API_PERMISSION_CLASSES
 
     def get(self, request):
-        try:
-            days = max(1, min(int(request.query_params.get("days", 7)), 90))
-        except (TypeError, ValueError):
-            days = 7
+        days = _requested_days(request)
+        channel = _requested_channel(request)
 
         since = timezone.now() - datetime.timedelta(days=days)
 
@@ -349,9 +391,12 @@ class AdminRefundStatsView(APIView):
             updated_at__gte=since,
         ).values_list("order_id", flat=True)
 
-        all_refund_orders = Order.objects.filter(
-            id__in=refunded_order_ids,
-            payment_status__in=["refunded", "partially_refunded"],
+        all_refund_orders = _by_channel(
+            Order.objects.filter(
+                id__in=refunded_order_ids,
+                payment_status__in=["refunded", "partially_refunded"],
+            ),
+            channel,
         )
 
         total_refunds = all_refund_orders.count()
@@ -386,6 +431,7 @@ class AdminRefundStatsView(APIView):
         return Response(
             {
                 "days": days,
+                "channel": channel or "all",
                 "total_refunds": total_refunds,
                 "total_refunded_amount": total_refunded_amount,
                 "top_refunded_products": [

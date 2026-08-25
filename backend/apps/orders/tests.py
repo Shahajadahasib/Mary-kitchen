@@ -9,6 +9,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.test import TestCase
+from rest_framework.test import APITestCase
 
 from apps.cart.models import Cart, CartItem
 from apps.orders.models import Order, OrderItem, OrderStatusHistory
@@ -321,6 +322,85 @@ class AbandonUnpaidCheckoutTests(TestCase):
         abandon_unpaid_pending_checkouts(self.user, "grocery")
 
         self.assertTrue(Order.objects.filter(pk=paid.pk).exists())
+
+
+class AdminStatsChannelFilterTests(APITestCase):
+    """One Order table serves both businesses, so every admin figure has to be
+    filterable by channel -- otherwise the dashboard reports the grocery shop
+    and the restaurant added together, and the top-sellers table ranks dishes
+    against groceries."""
+
+    def setUp(self):
+        self.client.force_authenticate(user=make_admin())
+
+    def _delivered_order(self, channel, total, product_name):
+        order = Order.objects.create(
+            user=make_user(),
+            channel=channel,
+            status="delivered",
+            payment_status="paid",
+            total_amount=Decimal(total),
+            subtotal=Decimal(total),
+        )
+        OrderItem.objects.create(
+            order=order,
+            product_name=product_name,
+            unit_price=Decimal(total),
+            quantity=1,
+        )
+        return order
+
+    def _seed(self):
+        self._delivered_order("grocery", "10.00", "Barramundi fillet")
+        self._delivered_order("restaurant", "25.00", "Beef rendang")
+
+    def _get(self, path, channel=None):
+        url = path if channel is None else f"{path}&channel={channel}"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200, response.content)
+        return response.json()
+
+    def test_stats_default_to_both_businesses(self):
+        self._seed()
+
+        body = self._get("/api/v1/orders/admin/stats/?days=7")
+
+        self.assertEqual(body["orders_count"], 2)
+        self.assertAlmostEqual(body["revenue"], 35.0)
+        self.assertEqual(body["channel"], "all")
+
+    def test_stats_can_be_scoped_to_one_business(self):
+        self._seed()
+
+        body = self._get("/api/v1/orders/admin/stats/?days=7", "restaurant")
+
+        self.assertEqual(body["orders_count"], 1)
+        self.assertAlmostEqual(body["revenue"], 25.0)
+        self.assertEqual(body["channel"], "restaurant")
+
+    def test_an_unknown_channel_falls_back_to_both(self):
+        self._seed()
+
+        body = self._get("/api/v1/orders/admin/stats/?days=7", "dine-in")
+
+        self.assertEqual(body["orders_count"], 2)
+        self.assertEqual(body["channel"], "all")
+
+    def test_revenue_series_is_scoped_too(self):
+        self._seed()
+
+        rows = self._get("/api/v1/orders/admin/revenue/?days=7", "grocery")
+
+        self.assertAlmostEqual(sum(r["revenue"] for r in rows), 10.0)
+
+    def test_top_sellers_do_not_mix_dishes_with_groceries(self):
+        self._seed()
+
+        both = self._get("/api/v1/orders/admin/top-products/?days=7")
+        restaurant = self._get("/api/v1/orders/admin/top-products/?days=7", "restaurant")
+
+        self.assertEqual(len(both), 2)
+        self.assertEqual([r["name"] for r in restaurant], ["Beef rendang"])
 
 
 class OrderStatusTransitionTests(TestCase):

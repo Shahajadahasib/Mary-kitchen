@@ -73,8 +73,24 @@ const DAY_OPTIONS = [
     { label: "Last 90 days", value: 90 },
 ];
 
+// Same three tabs as the orders queue, for the same reason: one Order table
+// serves both businesses, so every figure below is the two added together
+// unless a channel is chosen.
+const CHANNEL_TABS = [
+    { value: "", label: "Both" },
+    { value: "grocery", label: "Grocery" },
+    { value: "restaurant", label: "Restaurant" },
+] as const;
+
 export default function AdminDashboardPage() {
     const [days, setDays] = useState(7);
+    /** "" = both businesses, which is what the endpoints default to. */
+    const [channel, setChannel] = useState("");
+
+    /** `?days=…` plus `&channel=…` when one storefront is selected. */
+    const statsQuery = `days=${days}${channel ? `&channel=${channel}` : ""}`;
+    const channelLabel =
+        CHANNEL_TABS.find((t) => t.value === channel)?.label ?? "Both";
 
     const { data: orders } = useQuery({
         queryKey: ["admin-orders"],
@@ -84,24 +100,24 @@ export default function AdminDashboardPage() {
     });
 
     const { data: stats } = useQuery<AdminStats>({
-        queryKey: ["admin-stats", days],
+        queryKey: ["admin-stats", days, channel],
         queryFn: () =>
-            api.get(`/orders/admin/stats/?days=${days}`).then((r) => r.data),
+            api.get(`/orders/admin/stats/?${statsQuery}`).then((r) => r.data),
         refetchInterval: 60_000,
     });
 
     const { data: revenueData } = useQuery<RevenuePoint[]>({
-        queryKey: ["admin-revenue", days],
+        queryKey: ["admin-revenue", days, channel],
         queryFn: () =>
-            api.get(`/orders/admin/revenue/?days=${days}`).then((r) => r.data),
+            api.get(`/orders/admin/revenue/?${statsQuery}`).then((r) => r.data),
         refetchInterval: 60_000,
     });
 
     const { data: topProducts } = useQuery<TopProduct[]>({
-        queryKey: ["top-products", days],
+        queryKey: ["top-products", days, channel],
         queryFn: () =>
             api
-                .get(`/orders/admin/top-products/?days=${days}`)
+                .get(`/orders/admin/top-products/?${statsQuery}`)
                 .then((r) => r.data),
         refetchInterval: 60_000,
     });
@@ -124,10 +140,10 @@ export default function AdminDashboardPage() {
     });
 
     const { data: refundStats } = useQuery<RefundStats>({
-        queryKey: ["admin-refund-stats", days],
+        queryKey: ["admin-refund-stats", days, channel],
         queryFn: () =>
             api
-                .get(`/orders/admin/refund-stats/?days=${days}`)
+                .get(`/orders/admin/refund-stats/?${statsQuery}`)
                 .then((r) => r.data),
         refetchInterval: 60_000,
     });
@@ -179,7 +195,7 @@ export default function AdminDashboardPage() {
             value: conversion
                 ? `${conversion.conversion_rate.toFixed(1)}%`
                 : "—",
-            sub: `Paid orders / visits · ${periodLabel}`,
+            sub: `Paid orders / visits · both storefronts · ${periodLabel}`,
             icon: Percent,
             color: "bg-orange-500",
         },
@@ -187,20 +203,48 @@ export default function AdminDashboardPage() {
 
     return (
         <div>
-            {/* Header row with period picker */}
+            {/* Header row with business and period pickers */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                 <h2 className="text-xl font-bold text-gray-900">Overview</h2>
-                <select
-                    value={days}
-                    onChange={(e) => setDays(Number(e.target.value))}
-                    className="input-field text-sm w-auto pr-8"
-                >
-                    {DAY_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>
-                            {o.label}
-                        </option>
-                    ))}
-                </select>
+                <div className="flex flex-wrap items-center gap-3">
+                    <div
+                        role="tablist"
+                        aria-label="Filter figures by business"
+                        className="inline-flex rounded-lg bg-gray-100 p-1"
+                    >
+                        {CHANNEL_TABS.map((tab) => {
+                            const active = channel === tab.value;
+                            return (
+                                <button
+                                    key={tab.value}
+                                    role="tab"
+                                    type="button"
+                                    aria-selected={active}
+                                    onClick={() => setChannel(tab.value)}
+                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                                        active
+                                            ? "bg-white text-gray-900 shadow-sm"
+                                            : "text-gray-500 hover:text-gray-700"
+                                    }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <select
+                        value={days}
+                        onChange={(e) => setDays(Number(e.target.value))}
+                        aria-label="Reporting period"
+                        className="input-field text-sm w-auto pr-8"
+                    >
+                        {DAY_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>
+                                {o.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             {/* Stats cards */}
@@ -312,7 +356,10 @@ export default function AdminDashboardPage() {
                         Top Products
                     </h3>
                     <p className="text-sm text-gray-500 mt-0.5">
-                        Delivered orders · {periodLabel}
+                        Delivered orders · {channelLabel === "Both"
+                            ? "both storefronts"
+                            : channelLabel}{" "}
+                        · {periodLabel}
                     </p>
                 </div>
                 <div className="overflow-x-auto">
