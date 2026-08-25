@@ -46,3 +46,6 @@ frontend/.env*.local
 
 # ── Miscellaneous ─────────────────────────────────────────────────────────────
 media/
+# Local copies of production data pulled by scripts/pull-prod-data.sh.
+# Contains real customer records — must never be committed.
+.local-data/
