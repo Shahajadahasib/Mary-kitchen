@@ -127,7 +127,7 @@ export default function Header() {
             href="/restaurant"
             onClick={closeAll}
             aria-label="Restaurant menu"
-            className="header-action bg-brand-600 ring-brand-400/40 hover:bg-brand-700 hover:ring-brand-300/60 focus-visible:ring-brand-200 lg:w-auto lg:gap-2 lg:px-3.5"
+            className="header-action bg-brand-50 text-brand-800 shadow-sm ring-brand-900/10 hover:bg-white hover:ring-brand-900/20 focus-visible:ring-white lg:w-auto lg:gap-2 lg:px-3.5"
         >
             <ChefHat
                 className="h-5 w-5 shrink-0"
@@ -205,7 +205,7 @@ export default function Header() {
                                 {cartCount > 0 && (
                                     <span
                                         key={cartCount}
-                                        className="header-badge bg-brand-600 text-white ring-2 ring-primary-700"
+                                        className="header-badge bg-brand-700 text-white ring-2 ring-primary-700"
                                     >
                                         {cap(cartCount)}
                                     </span>
@@ -437,7 +437,7 @@ export default function Header() {
                             <Link
                                 href="/restaurant"
                                 onClick={() => setMenuOpen(false)}
-                                className="mb-1 flex items-center justify-between rounded-xl bg-brand-600 px-3 py-3 font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
+                                className="mb-1 flex items-center justify-between rounded-xl bg-brand-50 px-3 py-3 font-semibold text-brand-800 shadow-sm transition-colors hover:bg-white"
                             >
                                 <span className="flex items-center gap-2">
                                     <ChefHat

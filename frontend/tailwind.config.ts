@@ -14,32 +14,30 @@ const config: Config = {
         short: { raw: "(max-height: 720px)" },
       },
       colors: {
-        // The warm accent — the restaurant storefront's primary colour, and the
-        // grocery shop's secondary (sale badges, the search button).
+        // The warm accent — the restaurant storefront's primary colour, and
+        // the grocery shop's secondary (sale badges, the search button).
         //
-        // This used to be a plain safety-orange (#f2820f / #e36309). Two
-        // problems with it: white text on `brand-600` measured 3.47:1, under
-        // the 4.5:1 AA floor for the buttons it was used on, and a pure orange
-        // reads closer to fast-food signage than to a kitchen. The scale below
-        // is a spiced terracotta — the hue drifts warm-golden at the light end
-        // (~28°) and deep brick at the dark end (~10°), which is what keeps a
-        // warm ramp from looking flat.
+        // A terracotta-leaning orange: hue sits around 17° rather than the 25°
+        // of the plain safety-orange this replaced, which is what separates it
+        // from fast-food signage, while the lightness stays high enough that
+        // large fields of it — the restaurant header, the hero — read warm and
+        // appetising rather than brick.
         //
-        // Contrast against white, measured: 600 → 4.70:1, 700 → 6.48:1. Use
-        // 600 or darker behind white text; 400/500 are for tints, badges on
-        // dark, and decorative accents only.
+        // Contrast against white, measured: 600 → 3.87:1, 700 → 5.55:1. Put
+        // white text below ~18px on 700 or darker; 600 is for larger labels,
+        // icon-only fills and accents. 400/500 are tints and decoration only.
         brand: {
-          50: "#fef6f0",
-          100: "#fde9dc",
-          200: "#fbd0b6",
-          300: "#f7ae86",
-          400: "#f1834f",
-          500: "#e85f28",
-          600: "#cf4318",
-          700: "#ac3316",
-          800: "#8b2b18",
-          900: "#722617",
-          950: "#3e0f08",
+          50: "#fff7f1",
+          100: "#ffebdd",
+          200: "#fed4b8",
+          300: "#fbb488",
+          400: "#f78d55",
+          500: "#f06a2e",
+          600: "#dd5620",
+          700: "#b93f14",
+          800: "#963517",
+          900: "#7a2e17",
+          950: "#431308",
         },
         primary: {
           DEFAULT: "#1a6b3c",

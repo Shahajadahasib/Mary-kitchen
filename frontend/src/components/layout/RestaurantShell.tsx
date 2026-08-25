@@ -50,7 +50,7 @@ export default function RestaurantShell({
                 once scrolled, and a blurred bar cannot be legible against both.
                 The action icons share the `header-action` skin with the grocery
                 header, so the two storefronts feel like one product. */}
-            <header className="sticky top-0 z-50 bg-gradient-to-r from-brand-800 to-brand-700 text-white shadow-lg">
+            <header className="sticky top-0 z-50 bg-brand-700 text-white shadow-lg">
                 <div className="container-xl">
                     <div className="flex items-center gap-2 py-2.5 sm:gap-4">
                         <Link
@@ -131,7 +131,7 @@ export default function RestaurantShell({
                                 rule, same green-vs-terracotta signalling. */}
                             <Link
                                 href="/shop"
-                                className="header-action bg-primary-700 ring-primary-400/40 hover:bg-primary-800 hover:ring-primary-300/60 focus-visible:ring-primary-200 lg:w-auto lg:gap-2 lg:px-3.5"
+                                className="header-action bg-primary-50 text-primary-800 shadow-sm ring-primary-900/10 hover:bg-white hover:ring-primary-900/20 focus-visible:ring-white lg:w-auto lg:gap-2 lg:px-3.5"
                                 aria-label="Grocery shop"
                             >
                                 <ShoppingBasket

@@ -45,18 +45,18 @@ export default function RestaurantHero() {
             {/* Directional scrim — vertical on phones, horizontal from md up. */}
             <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-b from-brand-950/90 via-brand-950/80 to-brand-950/85
-                           md:bg-gradient-to-r md:from-brand-950/95 md:via-brand-950/75 md:to-brand-950/20"
+                className="absolute inset-0 bg-gradient-to-b from-brand-950/85 via-brand-900/70 to-brand-950/80
+                           md:bg-gradient-to-r md:from-brand-950/90 md:via-brand-900/65 md:to-brand-900/10"
             />
             {/* Edge scrim — keeps the header and the strip below it readable. */}
             <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-t from-brand-950/85 via-transparent to-brand-950/50"
+                className="absolute inset-0 bg-gradient-to-t from-brand-950/80 via-transparent to-brand-950/45"
             />
             {/* A single warm highlight, so the photo does not read as grey. */}
             <div
                 aria-hidden="true"
-                className="absolute -right-24 top-1/2 hidden h-[28rem] w-[28rem] -translate-y-1/2 rounded-full bg-brand-500/20 blur-3xl lg:block"
+                className="absolute -right-24 top-1/2 hidden h-[28rem] w-[28rem] -translate-y-1/2 rounded-full bg-brand-400/25 blur-3xl lg:block"
             />
 
             <div className="container-xl relative px-4 py-12 sm:py-16 lg:py-20">
