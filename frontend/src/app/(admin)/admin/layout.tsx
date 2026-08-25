@@ -63,7 +63,17 @@ export default function AdminLayout({
         };
     }, [sidebarOpen]);
 
-    if (!hasHydrated) {
+    // Render nothing admin-shaped until we know this is a signed-in staff user.
+    //
+    // The effect above only *starts* a redirect; it does not stop this render
+    // pass. Previously `children` mounted anyway, so the dashboard fired eight
+    // authenticated queries that all 401'd, which tripped the session-expired
+    // handler in lib/api.ts and hard-navigated away — overriding the push to
+    // /login. That produced the "login page flashes, then lands on the hub"
+    // behaviour. Holding the children back removes the race at its source.
+    const isStaffUser = isAuthenticated && user?.is_staff === true;
+
+    if (!hasHydrated || !isStaffUser) {
         return (
             <div className="flex h-screen items-center justify-center bg-gray-100">
                 <div className="flex flex-col items-center gap-3">
