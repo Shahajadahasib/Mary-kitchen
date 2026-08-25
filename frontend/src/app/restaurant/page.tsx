@@ -49,14 +49,16 @@ function MenuBrowse() {
         if (value) next.set(key, value);
         else next.delete(key);
         next.delete("page");
-        router.push(`/restaurant?${next.toString()}`);
+        router.push(`/restaurant?${next.toString()}`, { scroll: false });
     };
 
     const handlePageChange = (page: number) => {
         const next = new URLSearchParams(searchParams.toString());
         next.set("page", String(page));
-        router.push(`/restaurant?${next.toString()}`);
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        router.push(`/restaurant?${next.toString()}`, { scroll: false });
+        document
+            .getElementById("menu")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
     const items: MenuItemListEntry[] = data?.results ?? [];
@@ -89,7 +91,7 @@ function MenuBrowse() {
                             label: c.name,
                             hint: c.item_count,
                         }))}
-                        className="flex-1 sm:w-44 sm:flex-none"
+                        className="flex-1 sm:w-40 sm:flex-none"
                     />
                     <FilterDropdown
                         label="Dietary"
@@ -100,7 +102,7 @@ function MenuBrowse() {
                             value: tag,
                             label: dietaryLabel(tag),
                         }))}
-                        className="flex-1 sm:w-40 sm:flex-none"
+                        className="flex-1 sm:w-36 sm:flex-none"
                     />
                 </div>
             </div>

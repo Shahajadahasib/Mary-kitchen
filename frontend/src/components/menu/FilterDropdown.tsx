@@ -127,7 +127,14 @@ export default function FilterDropdown({
                     id={listId}
                     role="listbox"
                     aria-label={label}
-                    className="scrollbar-slim absolute left-0 right-0 top-full z-40 mt-2 max-h-72 min-w-[12rem] animate-dropdown-in overflow-y-auto rounded-2xl border border-gray-100 bg-white p-1.5 shadow-2xl"
+                    // Exactly the trigger's width — `left-0 right-0` against the
+                    // relatively-positioned wrapper. An earlier `min-w` here
+                    // made the panel wider than its trigger, and since these
+                    // sit flush against the right edge of the container the
+                    // overflow put a horizontal scrollbar on the whole page
+                    // every time a dropdown opened. Long names truncate
+                    // instead, which they already did in the trigger.
+                    className="scrollbar-slim absolute left-0 right-0 top-full z-40 mt-2 max-h-72 animate-dropdown-in overflow-y-auto rounded-2xl border border-gray-100 bg-white p-1.5 shadow-2xl"
                 >
                     {rows.map((opt, i) => {
                         const isSelected = opt.value === value;
