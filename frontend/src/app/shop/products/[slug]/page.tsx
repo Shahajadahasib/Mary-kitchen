@@ -179,7 +179,7 @@ export default function ProductDetailPage() {
                         )}
                     </div>
                     {images.length > 1 && (
-                        <div className="flex gap-2 overflow-x-auto pb-1">
+                        <div className="scrollbar-slim flex gap-2 overflow-x-auto pb-1.5">
                             {images.map((img: any, i: number) => (
                                 <button
                                     key={img.id}

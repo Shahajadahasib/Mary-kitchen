@@ -109,7 +109,7 @@ export default function ProfilePage() {
             <h1 className="section-title mb-6">My Account</h1>
 
             {/* Tabs */}
-            <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6 overflow-x-auto w-full sm:w-fit">
+            <div className="scrollbar-none mb-6 flex w-full gap-1 overflow-x-auto rounded-xl bg-gray-100 p-1 sm:w-fit">
                 {TABS.map((tab) => (
                     <button
                         key={tab}
