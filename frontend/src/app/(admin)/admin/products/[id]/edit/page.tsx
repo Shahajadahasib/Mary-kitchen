@@ -270,7 +270,7 @@ export default function EditProductPage() {
       </div>
 
       {/* Images Section */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-5">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-800">Product Images</h3>
           <button
@@ -329,7 +329,7 @@ export default function EditProductPage() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Basic Info */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
           <h3 className="font-semibold text-gray-800">Basic Information</h3>
           <div data-field="name">
             <label className="block text-sm font-medium text-gray-700 mb-1">Product Name <span className="text-red-500">*</span></label>
@@ -359,7 +359,7 @@ export default function EditProductPage() {
         </div>
 
         {/* Pricing */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
           <h3 className="font-semibold text-gray-800">Pricing</h3>
           <div className="grid grid-cols-2 gap-4">
             <div data-field="base_price">
@@ -376,7 +376,7 @@ export default function EditProductPage() {
         </div>
 
         {/* Inventory */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
           <h3 className="font-semibold text-gray-800">Inventory</h3>
           <div className="grid grid-cols-2 gap-4">
             <div data-field="sku">
@@ -410,7 +410,7 @@ export default function EditProductPage() {
         </div>
 
         {/* Settings */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <h3 className="font-semibold text-gray-800 mb-4">Settings</h3>
           <div className="space-y-3">
             <label className="flex items-center gap-3 cursor-pointer">

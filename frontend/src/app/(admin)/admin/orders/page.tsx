@@ -1,5 +1,7 @@
 "use client";
 
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { AdminSearchInput, AdminToolbar } from "@/components/admin/AdminToolbar";
 import FilterDropdown from "@/components/ui/FilterDropdown";
 import api from "@/lib/api";
 import {
@@ -305,94 +307,63 @@ function AdminOrdersPageInner() {
 
     return (
         <div>
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h2 className="text-xl font-bold text-gray-900">
-                        Order Management
-                    </h2>
-                    {!isLoading && (
-                        <p className="text-sm text-gray-400 mt-0.5">
-                            {total} order{total !== 1 ? "s" : ""}
-                        </p>
-                    )}
-                </div>
-            </div>
+            <AdminPageHeader
+                title="Order Management"
+                subtitle={
+                    isLoading ? undefined : `${total} order${total !== 1 ? "s" : ""}`
+                }
+            />
 
-            {/* Toolbar: business tabs, search, status. These used to be two
-                separate blocks, and the search field and status select sat
-                inside a wrapper that was not itself a flex container — so the
-                row's `gap-3` never applied to them and the two controls
-                rendered flush against each other. One card, one flex row, one
-                set of heights. */}
-            <div className="mb-4 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-                    {/* Staff fulfilling grocery deliveries and staff plating
-                        restaurant takeaway are working different queues. */}
-                    <div
-                        role="tablist"
-                        aria-label="Filter orders by business"
-                        className="inline-flex shrink-0 rounded-full bg-gray-100 p-1"
-                    >
-                        {CHANNEL_TABS.map((tab) => {
-                            const active = channelFilter === tab.value;
-                            return (
-                                <button
-                                    key={tab.value}
-                                    role="tab"
-                                    type="button"
-                                    aria-selected={active}
-                                    onClick={() => setChannelFilter(tab.value)}
-                                    className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                                        active
-                                            ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
-                                            : "text-gray-500 hover:text-gray-800"
-                                    }`}
-                                >
-                                    {tab.label}
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    <div className="group relative flex h-11 flex-1 items-center gap-2 rounded-full bg-white pl-4 pr-1 ring-1 ring-inset ring-gray-200 transition-all duration-200 focus-within:ring-2 focus-within:ring-brand-400 hover:ring-gray-300 lg:max-w-sm">
-                        <Search
-                            className="h-4 w-4 shrink-0 text-gray-400 transition-colors group-focus-within:text-brand-600"
-                            strokeWidth={2.25}
-                            aria-hidden="true"
-                        />
-                        <input
-                            value={searchInput}
-                            onChange={(e) => setSearchInput(e.target.value)}
-                            placeholder="Search order # or customer email…"
-                            aria-label="Search orders"
-                            className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
-                        />
-                        {searchInput && (
+            {/* Business tabs, search, status. Staff fulfilling grocery
+                deliveries and staff plating restaurant takeaway are working
+                different queues. */}
+            <AdminToolbar>
+                <div
+                    role="tablist"
+                    aria-label="Filter orders by business"
+                    className="inline-flex shrink-0 rounded-full bg-gray-100 p-1"
+                >
+                    {CHANNEL_TABS.map((tab) => {
+                        const active = channelFilter === tab.value;
+                        return (
                             <button
+                                key={tab.value}
+                                role="tab"
                                 type="button"
-                                aria-label="Clear search"
-                                onClick={() => setSearchInput("")}
-                                className="mr-2 grid h-6 w-6 shrink-0 place-items-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                                aria-selected={active}
+                                onClick={() => setChannelFilter(tab.value)}
+                                className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                                    active
+                                        ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                                        : "text-gray-500 hover:text-gray-800"
+                                }`}
                             >
-                                <X className="h-3.5 w-3.5" strokeWidth={2.5} />
+                                {tab.label}
                             </button>
-                        )}
-                    </div>
-
-                    <FilterDropdown
-                        label="All statuses"
-                        allLabel="All statuses"
-                        value={statusFilter}
-                        onChange={setStatusFilter}
-                        options={ALL_STATUSES.map((st) => ({
-                            value: st,
-                            label: orderStatusLabel(st),
-                        }))}
-                        className="lg:ml-auto lg:w-52"
-                    />
+                        );
+                    })}
                 </div>
-            </div>
+
+                <AdminSearchInput
+                    value={searchInput}
+                    onChange={setSearchInput}
+                    label="Search orders"
+                    placeholder="Order #, customer, status, type, date…"
+                    className="flex-1 lg:max-w-sm"
+                />
+
+                <FilterDropdown
+                    label="All statuses"
+                    allLabel="All statuses"
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    options={ALL_STATUSES.map((st) => ({
+                        value: st,
+                        label: orderStatusLabel(st),
+                    }))}
+                    className="lg:ml-auto lg:w-52"
+                />
+            </AdminToolbar>
 
             {/* Table */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">

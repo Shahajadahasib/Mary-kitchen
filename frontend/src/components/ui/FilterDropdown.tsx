@@ -19,6 +19,9 @@ type Props = {
     onChange: (value: string) => void;
     /** Label for the "clear this filter" row at the top of the list. */
     allLabel: string;
+    /** False for a required choice — a reporting period has no "unset" state,
+     *  and offering one duplicated the first real option. */
+    clearable?: boolean;
     className?: string;
 };
 
@@ -43,6 +46,7 @@ export default function FilterDropdown({
     value,
     onChange,
     allLabel,
+    clearable = true,
     className = "",
 }: Props) {
     const [open, setOpen] = useState(false);
@@ -53,8 +57,11 @@ export default function FilterDropdown({
     const selected = options.find((o) => o.value === value);
     const isFiltered = Boolean(value);
 
-    // `allLabel` is index 0 so keyboard traversal covers the clear row too.
-    const rows: FilterOption[] = [{ value: "", label: allLabel }, ...options];
+    // When clearable, `allLabel` is index 0 so keyboard traversal covers the
+    // clear row too.
+    const rows: FilterOption[] = clearable
+        ? [{ value: "", label: allLabel }, ...options]
+        : options;
 
     useEffect(() => {
         if (!open) return;

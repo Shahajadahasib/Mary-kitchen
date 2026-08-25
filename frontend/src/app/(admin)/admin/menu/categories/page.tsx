@@ -1,4 +1,5 @@
 "use client";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 import MediaImage from "@/components/ui/MediaImage";
 import { useEffect, useRef, useState } from "react";
@@ -160,22 +161,18 @@ export default function AdminMenuCategoriesPage() {
 
     return (
         <div>
-            <div className="mb-6 flex items-center justify-between gap-3">
-                <div>
-                    <h2 className="text-xl font-bold text-gray-900">
-                        Menu Categories
-                    </h2>
-                    <p className="mt-0.5 text-sm text-gray-400">
-                        Sections of the restaurant menu, e.g. Starters, Mains.
-                    </p>
-                </div>
-                <button
-                    onClick={openCreate}
-                    className="btn-primary flex shrink-0 items-center gap-2 text-sm"
-                >
-                    <Plus className="h-4 w-4" /> New category
-                </button>
-            </div>
+            <AdminPageHeader
+                title="Menu Categories"
+                subtitle="Sections of the restaurant menu, e.g. Starters, Mains."
+                action={
+                    <button
+                        onClick={openCreate}
+                        className="btn-primary flex shrink-0 items-center gap-2 text-sm"
+                    >
+                        <Plus className="h-4 w-4" /> New category
+                    </button>
+                }
+            />
 
             {isLoading ? (
                 <div className="space-y-3">

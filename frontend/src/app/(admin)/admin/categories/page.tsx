@@ -1,4 +1,5 @@
 "use client";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import MediaImage from "@/components/ui/MediaImage";
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -226,17 +227,19 @@ export default function AdminCategoriesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-900">Categories</h2>
-        <button onClick={openCreate} className="btn-primary flex items-center gap-2 text-sm">
-          <Plus className="w-4 h-4" /> Add Category
-        </button>
-      </div>
+      <AdminPageHeader
+        title="Categories"
+        action={
+          <button onClick={openCreate} className="btn-primary flex items-center gap-2 text-sm">
+            <Plus className="w-4 h-4" /> Add Category
+          </button>
+        }
+      />
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-100 p-5 animate-pulse">
+            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
               <div className="h-3 bg-gray-100 rounded w-full" />
             </div>
@@ -485,7 +488,7 @@ export default function AdminCategoriesPage() {
 function CategoryCard({ cat, onEdit, onDelete }: { cat: Category; onEdit: (c: Category) => void; onDelete: (c: Category) => void }) {
   const thumb = absoluteMediaUrl(cat.image_url ?? cat.image ?? null);
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex gap-3">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex gap-3">
       <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">
         {thumb ? (
           <MediaImage src={thumb} alt="" fill className="object-cover" sizes="64px" />
