@@ -11,10 +11,20 @@ import { useQuery } from "@tanstack/react-query";
 import { Package } from "lucide-react";
 import Link from "next/link";
 
+/**
+ * Grocery order history.
+ *
+ * The customer's account spans both storefronts, so this must ask for its own
+ * channel — without `?channel=grocery` the shared endpoint returns restaurant
+ * orders too, and every row here links into `/shop/orders/...`.
+ */
 export default function OrdersPage() {
     const { data, isLoading } = useQuery({
-        queryKey: ["orders"],
-        queryFn: () => api.get("/orders/").then((r) => r.data),
+        queryKey: ["orders", "grocery"],
+        queryFn: () =>
+            api
+                .get("/orders/", { params: { channel: "grocery" } })
+                .then((r) => r.data),
     });
 
     if (isLoading)

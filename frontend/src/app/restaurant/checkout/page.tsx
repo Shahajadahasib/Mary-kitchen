@@ -293,7 +293,7 @@ export default function RestaurantCheckoutPage() {
                                                         {String(addr.label ?? "Address")}
                                                     </span>
                                                     <span className="block text-gray-600">
-                                                        {String(addr.street_address ?? "")}
+                                                        {String(addr.address_line1 ?? "")}
                                                         {addr.suburb ? `, ${addr.suburb}` : ""}
                                                         {addr.state ? ` ${addr.state}` : ""}
                                                         {addr.postcode ? ` ${addr.postcode}` : ""}
@@ -342,7 +342,7 @@ export default function RestaurantCheckoutPage() {
                             onChange={(e) => setNotes(e.target.value)}
                             rows={3}
                             placeholder="Allergies, spice level, collection time…"
-                            className="input-field w-full resize-none"
+                            className="input-field w-full resize-none focus:ring-brand-500"
                         />
                     </section>
                 </div>

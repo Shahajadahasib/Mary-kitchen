@@ -77,7 +77,7 @@ function MenuBrowse() {
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search the menu..."
-                        className="input-field pl-10 w-full"
+                        className="input-field pl-10 w-full focus:ring-brand-500"
                     />
                 </div>
                 <button

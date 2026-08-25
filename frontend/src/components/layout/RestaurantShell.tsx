@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChefHat, ShoppingBag, ShoppingBasket } from "lucide-react";
 import { useEffect } from "react";
+import VisitTracker from "@/components/analytics/VisitTracker";
 import Footer from "@/components/layout/Footer";
 import ScrollToTop from "@/components/layout/ScrollToTop";
 import { authHref } from "@/lib/authRedirect";
@@ -39,6 +40,10 @@ export default function RestaurantShell({
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
             <ScrollToTop />
+            {/* Both storefronts must record visits: the admin conversion metric
+                divides paid orders from *both* channels by the visit count, so
+                tracking only the grocery shop overstated the rate. */}
+            <VisitTracker />
 
             <header className="bg-brand-700 text-white sticky top-0 z-50 shadow-lg">
                 <div className="container-xl">
