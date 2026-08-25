@@ -41,7 +41,14 @@ class MenuItemListView(generics.ListAPIView):
     serializer_class = MenuItemListSerializer
     permission_classes = [AllowAny]
     filterset_class = MenuItemFilter
-    search_fields = ["name", "description"]
+    # Diners search for the kind of thing they want to eat, not for a dish they
+    # have never seen the name of: "starters", "vegan", "gluten free". Name and
+    # description alone returned nothing for any of those. `dietary_tags` is a
+    # JSON list, and an icontains against it matches the serialised text — which
+    # also means a two-word query like "gluten free" matches the stored
+    # "gluten_free", since SearchFilter requires each term to hit some field and
+    # both halves appear in that string.
+    search_fields = ["name", "description", "category__name", "dietary_tags"]
     ordering_fields = ["base_price", "created_at", "name"]
     ordering = ["-created_at"]
 

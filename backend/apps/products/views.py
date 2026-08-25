@@ -54,7 +54,10 @@ class ProductListView(generics.ListAPIView):
     serializer_class = ProductListSerializer
     permission_classes = [AllowAny]
     filterset_class = ProductFilter
-    search_fields = ["name", "description", "tags", "sku"]
+    # Shoppers search by aisle as much as by product — "beverage", "spices".
+    # Without the category join those queries returned only incidental
+    # description matches, which looked like a broken search.
+    search_fields = ["name", "description", "tags", "sku", "category__name"]
     ordering_fields = ["base_price", "average_rating", "created_at", "name"]
     ordering = ["-created_at"]
 
@@ -106,7 +109,10 @@ class DealsProductsView(generics.ListAPIView):
     serializer_class = ProductListSerializer
     permission_classes = [AllowAny]
     filterset_class = ProductFilter
-    search_fields = ["name", "description", "tags", "sku"]
+    # Shoppers search by aisle as much as by product — "beverage", "spices".
+    # Without the category join those queries returned only incidental
+    # description matches, which looked like a broken search.
+    search_fields = ["name", "description", "tags", "sku", "category__name"]
     ordering_fields = ["base_price", "average_rating", "created_at", "name"]
     ordering = ["-created_at"]
 

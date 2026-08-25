@@ -9,13 +9,18 @@ from decimal import Decimal
 
 from django.test import TestCase
 from rest_framework import serializers
+from rest_framework.test import APITestCase
 
 from apps.menu.services import (
     modifiers_label,
     modifiers_total,
     validate_and_snapshot_modifiers,
 )
-from core.test_factories import make_menu_item, make_modifier_group
+from core.test_factories import (
+    make_menu_category,
+    make_menu_item,
+    make_modifier_group,
+)
 
 
 class ModifierValidationTests(TestCase):
@@ -233,3 +238,62 @@ class ModifierGroupNormalisationTests(TestCase):
             validate_and_snapshot_modifiers(
                 dish, [str(options[0].id), str(options[1].id)]
             )
+
+
+class MenuSearchTests(APITestCase):
+    """What a diner actually types into the menu search.
+
+    Nobody searching a restaurant knows the dish names in advance — they search
+    for a course ("starters") or for something they can eat ("vegan", "gluten
+    free"). Searching name and description alone answered every one of those
+    with an empty grid.
+    """
+
+    def setUp(self):
+        self.starters = make_menu_category(name="Starters", slug="starters-search")
+        self.mains = make_menu_category(name="Main Course", slug="mains-search")
+
+        self.spring_rolls = make_menu_item(
+            category=self.starters,
+            name="Crispy Parcels",
+            slug="crispy-parcels",
+            dietary_tags=["vegan", "gluten_free"],
+        )
+        self.jollof = make_menu_item(
+            category=self.mains,
+            name="Jollof with Fish",
+            slug="jollof-with-fish-search",
+            dietary_tags=["spicy", "dairy_free"],
+        )
+
+    def _search(self, term):
+        res = self.client.get("/api/v1/menu/", {"search": term})
+        self.assertEqual(res.status_code, 200)
+        return {r["name"] for r in res.data["results"]}
+
+    def test_search_by_category_name(self):
+        self.assertEqual(self._search("starters"), {"Crispy Parcels"})
+        self.assertEqual(self._search("main course"), {"Jollof with Fish"})
+
+    def test_search_by_dietary_tag(self):
+        self.assertEqual(self._search("vegan"), {"Crispy Parcels"})
+        self.assertEqual(self._search("spicy"), {"Jollof with Fish"})
+
+    def test_underscored_tag_is_reachable_by_the_label_people_read(self):
+        """The menu displays "Gluten free" but stores "gluten_free". Each search
+        term has to match some field, and both halves land inside that one
+        string, so the spaced form still finds the dish."""
+        self.assertEqual(self._search("gluten free"), {"Crispy Parcels"})
+
+    def test_search_by_name_still_works(self):
+        self.assertEqual(self._search("jollof"), {"Jollof with Fish"})
+
+    def test_unrelated_term_matches_nothing(self):
+        self.assertEqual(self._search("zzqq"), set())
+
+    def test_86_listed_dish_stays_out_of_results(self):
+        """Availability outranks relevance: a dish taken off for the day must
+        not come back just because its category matched."""
+        self.jollof.is_available = False
+        self.jollof.save(update_fields=["is_available"])
+        self.assertEqual(self._search("main course"), set())
