@@ -107,7 +107,15 @@ function AdminOrdersPageInner() {
     const [statusFilter, setStatusFilter] = useState("");
 
     useEffect(() => {
-        const t = window.setTimeout(() => setSearch(searchInput.trim()), 300);
+        // The table prints order numbers as "#MK-202608-ZEANGEQG", so the
+        // natural thing to do is select one and paste it here — and that "#"
+        // is presentation, not part of the stored `order_number`. Left in, it
+        // matched nothing and the table went blank, which reads as a broken
+        // search rather than as a search for a string that does not exist.
+        const t = window.setTimeout(
+            () => setSearch(searchInput.trim().replace(/^#+/, "")),
+            300,
+        );
         return () => window.clearTimeout(t);
     }, [searchInput]);
     // "" = both businesses. AdminOrderListView already filters on channel.
