@@ -446,3 +446,65 @@ For a fresh production environment:
 4. Point the Stripe webhook endpoint at `https://yourdomain/api/v1/payments/webhook/`.
 5. Run `python manage.py collectstatic` before deployment.
 6. Serve over HTTPS — the security headers are pre-configured in the production settings.
+
+### Published ports
+
+Every port in `docker-compose.yml` is published to `${BIND_HOST:-127.0.0.1}`, never `0.0.0.0`.
+This matters more than it looks. Docker installs its own DNAT rules ahead of ufw's `INPUT` chain,
+so a `"5432:5432"` mapping is reachable from the internet even on a box whose firewall denies
+5432 — which is exactly how a container Postgres ends up publicly listening with default
+credentials. Nothing outside the host needs these ports: containers reach each other by service
+name over the compose network, and Nginx proxies to `127.0.0.1`.
+
+If you ever need to reach the stack from another machine on your LAN, set `BIND_HOST=0.0.0.0` in
+the root `.env` on that development machine only. Never on the VPS.
+
+After deploying this change, confirm from somewhere off the box that the ports really are closed:
+
+```bash
+nc -zv your-vps-host 5432   # expect: refused / timed out
+nc -zv your-vps-host 6379   # expect: refused / timed out
+nc -zv your-vps-host 8000   # expect: refused / timed out
+curl -I https://marybenskitchen.com   # expect: 200, still served through Nginx
+```
+
+If Postgres was previously reachable, treat its credentials as compromised: rotate `DB_PASSWORD`
+(`ALTER USER postgres WITH PASSWORD '…'` — changing `POSTGRES_PASSWORD` alone does nothing to an
+existing data volume), update `backend/.env`, and restart the stack.
+
+### Database snapshots and rolling back
+
+`deploy/deploy.sh` writes a gzipped `pg_dump` to `/var/backups/mary-kitchen/` immediately before
+each migrate step, keeps the last ten, and aborts the deploy if the snapshot cannot be taken.
+
+This exists because **a rollback restores code, not schema.** When a health check fails, the script
+puts the previous commit back and rebuilds — but the migrations it already applied stay applied. If
+the migration was additive (a new nullable column, a new table) the old code is unaffected and the
+rollback is clean. If it dropped or renamed something, the old code is now talking to a schema it
+does not understand, and you have to restore the snapshot; the rollback output prints the exact
+command.
+
+The way to avoid needing it: split destructive schema changes across two releases. Ship the additive
+half first (add the new column, backfill it, write to both), let it bake, and only drop the old
+column in a later deploy once nothing reads it. Then any single deploy is always rollback-safe.
+
+### Downtime during a deploy
+
+`docker compose up -d` recreates the `backend` and `frontend` containers, so there is a window —
+usually a few seconds, up to ~30 for a cold Next.js start — where Nginx has nothing to proxy to and
+returns 502. The build and the migration both happen *before* that, while the old stack is still
+serving, so the window is a container restart rather than a full release.
+
+Two ways to shorten or remove it, in increasing order of effort:
+
+- **Make Nginx wait instead of failing.** Add `proxy_connect_timeout 2s;` plus
+  `proxy_next_upstream error timeout http_502;` and a short retry to the upstream block. Visitors
+  see a slow request instead of an error page. This is a config change on the box, no
+  rearchitecting.
+- **Run two replicas behind Nginx and restart them one at a time.** Give `backend` and `frontend`
+  two instances on distinct ports, list both in the Nginx `upstream`, and have the deploy recreate
+  one, wait for it to answer, then recreate the other. That is genuinely zero-downtime, at the cost
+  of a more complicated compose file and roughly double the memory.
+
+Whichever you choose, deploy at a quiet hour for Darwin (NT is UTC+9:30 and does not observe
+daylight saving), and watch `docker compose logs -f backend` until the health checks pass.

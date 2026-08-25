@@ -22,10 +22,15 @@ Phase 5 has shipped as well: `/admin/menu` manages menu categories and dishes (p
 and separate on-menu / 86-for-today toggles), and the admin orders queue has All / Grocery / Restaurant
 tabs.
 
-**Resuming this work in a new session:** only Phase 6 remains (polish — per-storefront SEO, menu-item
-reviews, channel-split analytics) and it is not scoped yet. Start at
-`memory/restaurant_expansion_roadmap.md`, which has the locked product decisions and a
-"Things later phases must not undo" section covering the invariants that were easy to get wrong.
+Phase 6 has now shipped too — it was scoped in `memory/phase6_plan.md` and delivered in two passes:
+channel-aware footer, reciprocal cross-links and the full SEO pass (steps 6.1–6.5), then channel-split
+admin analytics (step 6.6: an optional `?channel=` on the four admin stats endpoints, and a
+Both / Grocery / Restaurant tab row on the dashboard).
+
+**Resuming this work in a new session:** the restaurant expansion is feature-complete for v1. Start at
+`memory/restaurant_expansion_roadmap.md`, which has the locked product decisions, a "Things later
+phases must not undo" section covering the invariants that were easy to get wrong, and the list of
+work deliberately left out of v1 (menu-item reviews, dine-in ordering, per-channel visit tracking).
 
 ## Development Commands
 
