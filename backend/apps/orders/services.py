@@ -19,13 +19,19 @@ from .models import Order, OrderItem, OrderStatusHistory
 logger = logging.getLogger(__name__)
 
 
-def abandon_unpaid_pending_checkouts(user) -> None:
+def abandon_unpaid_pending_checkouts(user, channel: str = "grocery") -> None:
     """
     Remove stale unpaid checkout orders so the user can place a new one from the same cart
     without double stock deductions. Expires Stripe Checkout / cancels PaymentIntent when possible.
+
+    Scoped to one ``channel``. A customer's account spans both storefronts, so
+    an unscoped sweep would let a restaurant checkout expire the Stripe session
+    of a grocery order the customer is still paying for (and silently restore
+    its stock) — the two businesses must never abandon each other's drafts.
     """
     qs = Order.objects.filter(
         user=user,
+        channel=channel,
         status="pending",
         payment_status__in=["unpaid", "failed"],
     )

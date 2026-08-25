@@ -44,15 +44,16 @@ class CheckoutView(APIView):
         serializer.is_valid(raise_exception=True)
         d = serializer.validated_data
         try:
+            channel = d.get("channel", "grocery")
             with transaction.atomic():
-                abandon_unpaid_pending_checkouts(request.user)
+                abandon_unpaid_pending_checkouts(request.user, channel)
                 order = create_order_from_cart(
                     user=request.user,
                     order_type=d["order_type"],
                     address_id=d.get("address_id"),
                     notes=d.get("notes", ""),
                     session_id=d.get("session_id", ""),
-                    channel=d.get("channel", "grocery"),
+                    channel=channel,
                 )
                 try:
                     payment = create_checkout_session(order)

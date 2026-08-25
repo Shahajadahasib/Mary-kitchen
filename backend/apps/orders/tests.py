@@ -13,6 +13,7 @@ from django.test import TestCase
 from apps.cart.models import Cart, CartItem
 from apps.orders.models import Order, OrderItem, OrderStatusHistory
 from apps.orders.services import (
+    abandon_unpaid_pending_checkouts,
     allowed_next_statuses,
     create_order_from_cart,
     update_order_status,
@@ -278,6 +279,48 @@ class ChannelIsolationTests(TestCase):
                 item.menu_item_id is None,
                 f"OrderItem {item.pk} sets both or neither of product/menu_item",
             )
+
+
+class AbandonUnpaidCheckoutTests(TestCase):
+    """Abandoning stale drafts must not reach across the two businesses.
+
+    A customer's account spans both storefronts, so a restaurant checkout used
+    to delete the grocery order the same customer was still paying for on
+    Stripe -- expiring its session and silently restoring its stock.
+    """
+
+    def setUp(self):
+        self.user = make_user()
+
+    def _draft(self, channel):
+        return Order.objects.create(
+            user=self.user, channel=channel, status="pending", payment_status="unpaid"
+        )
+
+    def test_abandoning_one_channel_leaves_the_other_draft_alone(self):
+        grocery = self._draft("grocery")
+        restaurant = self._draft("restaurant")
+
+        abandon_unpaid_pending_checkouts(self.user, "restaurant")
+
+        self.assertTrue(Order.objects.filter(pk=grocery.pk).exists())
+        self.assertFalse(Order.objects.filter(pk=restaurant.pk).exists())
+
+    def test_it_still_clears_its_own_channel(self):
+        grocery = self._draft("grocery")
+
+        abandon_unpaid_pending_checkouts(self.user, "grocery")
+
+        self.assertFalse(Order.objects.filter(pk=grocery.pk).exists())
+
+    def test_a_paid_order_is_never_abandoned(self):
+        paid = Order.objects.create(
+            user=self.user, channel="grocery", status="confirmed", payment_status="paid"
+        )
+
+        abandon_unpaid_pending_checkouts(self.user, "grocery")
+
+        self.assertTrue(Order.objects.filter(pk=paid.pk).exists())
 
 
 class OrderStatusTransitionTests(TestCase):
