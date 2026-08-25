@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { UtensilsCrossed, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import FilterDropdown from "@/components/menu/FilterDropdown";
+import FilterDropdown from "@/components/ui/FilterDropdown";
 import MenuItemCard from "@/components/menu/MenuItemCard";
 import SearchAutocomplete from "@/components/layout/SearchAutocomplete";
 import RestaurantHero from "@/components/layout/RestaurantHero";
