@@ -3,9 +3,14 @@
 # Copy the production database (and optionally media) from the VPS into the
 # local Docker stack, so local development runs against real content.
 #
-#     bash scripts/pull-prod-data.sh
-#     bash scripts/pull-prod-data.sh --with-media
-#     VPS_HOST=root@srv1693480 bash scripts/pull-prod-data.sh
+#     VPS_HOST=user@your-vps bash scripts/pull-prod-data.sh
+#     VPS_HOST=user@your-vps bash scripts/pull-prod-data.sh --with-media
+#
+# VPS_HOST is required and deliberately has no default. The CI workflow keeps
+# the same value in GitHub secrets (secrets.VPS_HOST / secrets.VPS_USER), so
+# hardcoding it here would publish, in plaintext, something the project already
+# treats as a secret. Set it per-invocation, export it in your shell profile, or
+# put it in a gitignored scripts/.env.local and source that.
 #
 # This is a ONE-WAY, READ-ONLY pull. Nothing here writes to production, and
 # nothing you subsequently do locally travels back — deploys ship code, never
@@ -18,7 +23,19 @@
 set -euo pipefail
 
 # ── Configuration (override via environment) ────────────────────────────────
-VPS_HOST="${VPS_HOST:-root@srv1693480}"
+# Optional gitignored local override, e.g. VPS_HOST=user@host
+# shellcheck disable=SC1091
+[ -f "$(dirname "$0")/.env.local" ] && . "$(dirname "$0")/.env.local"
+
+if [ -z "${VPS_HOST:-}" ]; then
+    printf '[1;31m!!! VPS_HOST is not set.[0m
+' >&2
+    printf '    Run:  VPS_HOST=user@your-vps bash %s
+' "$0" >&2
+    printf '    Or put it in scripts/.env.local (gitignored).
+' >&2
+    exit 1
+fi
 REMOTE_APP_DIR="${REMOTE_APP_DIR:-/var/www/Mary-kitchen}"
 DB_NAME="${DB_NAME:-mary_kitchen_db}"
 DB_USER="${DB_USER:-postgres}"
