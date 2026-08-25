@@ -14,7 +14,7 @@ import {
     UtensilsCrossed,
     X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import VisitTracker from "@/components/analytics/VisitTracker";
 import Footer from "@/components/layout/Footer";
@@ -48,6 +48,8 @@ export default function RestaurantShell({
     const { user, isAuthenticated, hasHydrated, logout } = useAuthStore();
     const { cart, fetchCart } = useRestaurantCart();
     const [menuOpen, setMenuOpen] = useState(false);
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const userMenuRef = useRef<HTMLDivElement>(null);
 
     const signedIn = hasHydrated && isAuthenticated;
     const cartCount = cart?.items?.length ?? 0;
@@ -72,11 +74,21 @@ export default function RestaurantShell({
         };
     }, [menuOpen]);
 
+    useEffect(() => {
+        const onClick = (e: MouseEvent) => {
+            if (!userMenuRef.current?.contains(e.target as Node))
+                setUserMenuOpen(false);
+        };
+        window.addEventListener("click", onClick);
+        return () => window.removeEventListener("click", onClick);
+    }, []);
+
     const handleLogout = async () => {
         try {
             await logout();
         } finally {
             setMenuOpen(false);
+            setUserMenuOpen(false);
             router.push("/restaurant");
         }
     };
@@ -113,21 +125,82 @@ export default function RestaurantShell({
                         </Link>
 
                         <nav className="ml-auto flex flex-shrink-0 items-center gap-1 text-sm sm:gap-2">
+                            {/* Account control. The restaurant used to show a
+                                bare "My orders" link here while the grocery
+                                header carried a full profile menu, so the
+                                signed-in user had a face on one storefront and
+                                not the other. Same treatment on both now.
+                                Profile lives at /shop/profile because there is
+                                one account across the two storefronts. */}
                             {signedIn && (
-                                <Link
-                                    href="/restaurant/orders"
-                                    className="header-action hidden md:inline-flex lg:w-auto lg:gap-2 lg:px-3.5"
-                                    aria-label="My orders"
+                                <div
+                                    className="relative hidden md:block"
+                                    ref={userMenuRef}
                                 >
-                                    <Package
-                                        className="h-5 w-5 shrink-0"
-                                        strokeWidth={1.75}
-                                        aria-hidden="true"
-                                    />
-                                    <span className="hidden font-medium lg:inline">
-                                        My orders
-                                    </span>
-                                </Link>
+                                    <button
+                                        onClick={() =>
+                                            setUserMenuOpen(!userMenuOpen)
+                                        }
+                                        aria-haspopup="menu"
+                                        aria-expanded={userMenuOpen}
+                                        className={`header-action-wide ${userMenuOpen ? "bg-white/20 ring-white/30" : ""}`}
+                                    >
+                                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-[11px] font-bold uppercase">
+                                            {user?.first_name?.[0] ?? (
+                                                <UserRound
+                                                    className="h-3.5 w-3.5"
+                                                    strokeWidth={2}
+                                                />
+                                            )}
+                                        </span>
+                                        <span className="hidden max-w-[7rem] truncate text-sm font-medium lg:inline">
+                                            {user?.first_name}
+                                        </span>
+                                    </button>
+                                    {userMenuOpen && (
+                                        <div
+                                            role="menu"
+                                            className="absolute right-0 top-full z-50 mt-2 w-52 animate-dropdown-in overflow-hidden rounded-xl border border-gray-100 bg-white py-1 text-gray-700 shadow-2xl"
+                                        >
+                                            <Link
+                                                href="/shop/profile"
+                                                role="menuitem"
+                                                onClick={() => setUserMenuOpen(false)}
+                                                className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-gray-50"
+                                            >
+                                                <UserRound className="h-4 w-4 text-gray-400" />{" "}
+                                                My Profile
+                                            </Link>
+                                            <Link
+                                                href="/restaurant/orders"
+                                                role="menuitem"
+                                                onClick={() => setUserMenuOpen(false)}
+                                                className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-gray-50"
+                                            >
+                                                <Package className="h-4 w-4 text-gray-400" />{" "}
+                                                My Orders
+                                            </Link>
+                                            {user?.is_staff && (
+                                                <Link
+                                                    href="/admin"
+                                                    role="menuitem"
+                                                    onClick={() => setUserMenuOpen(false)}
+                                                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-50"
+                                                >
+                                                    Admin Panel
+                                                </Link>
+                                            )}
+                                            <hr className="my-1" />
+                                            <button
+                                                role="menuitem"
+                                                onClick={handleLogout}
+                                                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+                                            >
+                                                <LogOut className="h-4 w-4" /> Sign Out
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             )}
 
                             {!signedIn && (
