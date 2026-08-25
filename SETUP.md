@@ -52,6 +52,9 @@ Mary Kitchen/
 
 ---
 
+`scripts/` holds developer utilities that are not part of the deployed app —
+currently `pull-prod-data.sh`, which seeds a local database from the VPS (see step 6 below).
+
 ## Running locally with Docker (recommended)
 
 Docker is the shortest path to a working local copy: you do not need Python, Node, PostgreSQL or
@@ -151,6 +154,46 @@ docker compose exec backend python manage.py createsuperuser
 Log in with that account at <http://localhost:3000/login> to reach the admin dashboard, or at
 <http://localhost:8000/admin/> for Django admin. A fresh database has no products or menu items —
 add a few through the admin so the storefronts have something to show.
+
+### 6. Optional — seed from production instead
+
+A fresh database is empty. Rather than hand-entering test content, you can copy the live
+catalogue, orders and users down from the VPS:
+
+```bash
+# One-off
+VPS_HOST=user@your-vps bash scripts/pull-prod-data.sh --with-media
+
+# Or save the target once (scripts/.env.local is gitignored)
+echo 'VPS_HOST=user@your-vps' > scripts/.env.local
+bash scripts/pull-prod-data.sh --with-media
+```
+
+Run it from Git Bash on Windows — it is a bash script. Requirements: the local stack already
+running (`docker compose up -d`) and SSH access to the VPS. It asks you to type `yes` before
+doing anything, because it drops your local database.
+
+Drop `--with-media` if you only want rows; product and dish images will then 404 locally.
+
+**What it does, and does not, touch.** Production is only ever read: the script runs `pg_dump`
+and `tar` over SSH, and deletes nothing on the server except the two temporary files it creates
+in `/tmp`. The `DROP DATABASE` runs inside the *local* `mary-kitchen-db-1` container. The dump is
+downloaded and confirmed before anything local is dropped, so a failed connection leaves your
+local database untouched.
+
+Nothing flows the other way either. Deploys ship code, not rows — `deploy/deploy.sh`'s only
+database command is `migrate`. Changes you make locally never reach the VPS.
+
+Three things to know afterwards:
+
+- **Your local admin accounts are gone.** Sign in with production credentials instead; password
+  hashes come across in the dump.
+- **The dump contains real customer data** — names, addresses, phone numbers, order history. It is
+  kept at `.local-data/` (gitignored). Delete it when you are done.
+- **Leave `EMAIL_BACKEND` on the console backend** while real customer rows are loaded, or a
+  status-change test will email an actual customer.
+
+The copy is a snapshot, not a mirror. It goes stale as soon as someone orders on the live site.
 
 ### Everyday commands
 
