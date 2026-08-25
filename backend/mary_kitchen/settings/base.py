@@ -88,14 +88,6 @@ TEMPLATES = [
 WSGI_APPLICATION = "mary_kitchen.wsgi.application"
 ASGI_APPLICATION = "mary_kitchen.asgi.application"
 
-# ─── Static & Media Files ─────────────────────────────────────────────────────
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
-
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
-
 # ─── Database ─────────────────────────────────────────────────────────────────
 DATABASES = {
     "default": {
@@ -156,7 +148,10 @@ USE_TZ = True
 # ─── Static & Media ───────────────────────────────────────────────────────────
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+# Guarded: there is no backend/static/ directory in this repo, and naming a
+# missing directory makes every collectstatic run (including the one in the
+# production deploy) emit a staticfiles.W004 warning for nothing.
+STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
@@ -210,11 +205,12 @@ SIMPLE_JWT = {
 }
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
+# Local development origins only. `development.py` sets CORS_ALLOW_ALL_ORIGINS
+# and `production.py` replaces this list from the CORS_ALLOWED_ORIGINS env var,
+# so no deployment host belongs here.
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://187.77.156.212:3000",
-    "http://187.77.156.212",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
