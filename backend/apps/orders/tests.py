@@ -9,6 +9,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from apps.cart.models import Cart, CartItem
@@ -461,3 +462,84 @@ class OrderStatusTransitionTests(TestCase):
         self.assertEqual(history.from_status, "pending")
         self.assertEqual(history.changed_by, self.admin)
         self.assertEqual(history.note, "Customer called")
+
+
+class AdminOrderSearchTests(APITestCase):
+    """What staff actually type into the order queue's search box.
+
+    The queue previously matched order number and customer email only, so a
+    search for a customer's name, a status, a fulfilment type or the date shown
+    in the table returned an empty table — which reads as a broken search
+    rather than as a search that found nothing.
+    """
+
+    def setUp(self):
+        self.admin = make_admin()
+        self.client.force_authenticate(self.admin)
+
+        self.grace = make_user(email="grace@example.com", first_name="Grace", last_name="Ogu")
+        self.sam = make_user(email="sam@example.com", first_name="Sam", last_name="Hale")
+
+        self.grace_order = Order.objects.create(
+            user=self.grace, channel="grocery", order_type="pickup",
+            status="pending", payment_status="unpaid", total_amount=Decimal("33.00"),
+        )
+        self.sam_order = Order.objects.create(
+            user=self.sam, channel="restaurant", order_type="delivery",
+            status="out_for_delivery", payment_status="paid", total_amount=Decimal("75.00"),
+        )
+
+    def _search(self, term):
+        res = self.client.get("/api/v1/orders/admin/orders/", {"search": term})
+        self.assertEqual(res.status_code, 200)
+        return {r["order_number"] for r in res.data["results"]}
+
+    def test_order_number_with_and_without_the_displayed_hash(self):
+        number = self.grace_order.order_number
+        self.assertEqual(self._search(number), {number})
+        self.assertEqual(self._search(f"#{number}"), {number})
+
+    def test_search_by_customer_name(self):
+        self.assertEqual(self._search("Grace"), {self.grace_order.order_number})
+        self.assertEqual(self._search("Ogu"), {self.grace_order.order_number})
+
+    def test_full_name_needs_both_halves_to_match(self):
+        """Every word narrows: "Grace Ogu" spans two fields, and "Grace Hale"
+        is nobody, so it must return nothing rather than everyone called
+        either."""
+        self.assertEqual(self._search("Grace Ogu"), {self.grace_order.order_number})
+        self.assertEqual(self._search("Grace Hale"), set())
+
+    def test_search_by_email(self):
+        self.assertEqual(self._search("sam@example.com"), {self.sam_order.order_number})
+
+    def test_search_by_status_in_the_form_the_table_displays_it(self):
+        self.assertEqual(self._search("pending"), {self.grace_order.order_number})
+        self.assertEqual(self._search("out_for_delivery"), {self.sam_order.order_number})
+        self.assertEqual(self._search("Out for Delivery"), {self.sam_order.order_number})
+
+    def test_search_by_fulfilment_type_and_payment_state(self):
+        self.assertEqual(self._search("pickup"), {self.grace_order.order_number})
+        self.assertEqual(self._search("paid"), {self.sam_order.order_number})
+
+    def test_search_by_channel(self):
+        self.assertEqual(self._search("restaurant"), {self.sam_order.order_number})
+
+    def test_terms_combine_to_narrow(self):
+        self.assertEqual(self._search("grace pending"), {self.grace_order.order_number})
+        self.assertEqual(self._search("grace paid"), set())
+
+    def test_search_by_the_date_the_table_prints(self):
+        """`formatDate` renders en-AU short month — "26 Aug 2026" — so that is
+        the string most likely to be pasted back in."""
+        day = timezone.localtime(self.grace_order.created_at).date()
+        both = {self.grace_order.order_number, self.sam_order.order_number}
+        self.assertEqual(self._search(day.strftime("%d %b %Y")), both)
+        self.assertEqual(self._search(day.strftime("%Y-%m-%d")), both)
+        self.assertEqual(self._search(day.strftime("%d/%m/%Y")), both)
+
+    def test_a_date_with_no_orders_returns_nothing(self):
+        self.assertEqual(self._search("01 Jan 1999"), set())
+
+    def test_unrelated_term_matches_nothing(self):
+        self.assertEqual(self._search("zzqq"), set())

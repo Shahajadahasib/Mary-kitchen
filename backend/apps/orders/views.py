@@ -18,6 +18,7 @@ from core.permissions import ADMIN_API_PERMISSION_CLASSES, IsOwnerOrAdmin
 from apps.payments.models import Payment as PaymentModel
 from apps.payments.services import create_checkout_session
 
+from .filters import AdminOrderFilter
 from .models import Order, OrderItem
 from .serializers import (
     AdminOrderSerializer,
@@ -167,8 +168,9 @@ class AdminOrderListView(generics.ListAPIView):
     """Admin: list all orders with filters."""
     serializer_class = AdminOrderSerializer
     permission_classes = ADMIN_API_PERMISSION_CLASSES
-    search_fields = ["order_number", "user__email"]
-    filterset_fields = ["status", "order_type", "payment_status", "has_out_of_stock_items", "channel"]
+    # `AdminOrderFilter.search` replaces DRF's SearchFilter here — see that
+    # class for why a flat `search_fields` list could not cover what staff type.
+    filterset_class = AdminOrderFilter
     ordering_fields = ["created_at", "total_amount"]
 
     def get_queryset(self):
