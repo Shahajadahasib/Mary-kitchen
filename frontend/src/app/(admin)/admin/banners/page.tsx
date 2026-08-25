@@ -1,9 +1,9 @@
 "use client";
+import MediaImage from "@/components/ui/MediaImage";
 import api from "@/lib/api";
 import { formatDateTime, toLocalDatetimeInput, toUTCISO } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ImageIcon, Pencil, Plus, Trash2, X } from "lucide-react";
-import Image from "next/image";
 import { useState } from "react";
 import toast from "react-hot-toast";
 
@@ -248,7 +248,7 @@ export default function AdminBannersPage() {
                                         <td className="px-4 py-3">
                                             <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                                                 {banner.image ? (
-                                                    <Image
+                                                    <MediaImage
                                                         src={banner.image}
                                                         alt={banner.title}
                                                         fill
@@ -388,7 +388,7 @@ export default function AdminBannersPage() {
                                 <div className="flex items-start gap-3">
                                     <div className="relative w-32 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
                                         {imagePreview ? (
-                                            <Image
+                                            <MediaImage
                                                 src={imagePreview}
                                                 alt="preview"
                                                 fill

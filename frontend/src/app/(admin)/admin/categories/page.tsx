@@ -1,8 +1,8 @@
 "use client";
+import MediaImage from "@/components/ui/MediaImage";
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import Image from "next/image";
 import api from "@/lib/api";
 import { absoluteMediaUrl } from "@/lib/media";
 import ConfirmModal from "@/components/admin/ConfirmModal";
@@ -292,7 +292,7 @@ export default function AdminCategoriesPage() {
                 <div className="flex items-start gap-4">
                   <div className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 flex-shrink-0">
                     {imagePreview ? (
-                      <Image src={imagePreview} alt="" fill className="object-cover" unoptimized={imagePreview.startsWith("blob:")} />
+                      <MediaImage src={imagePreview} alt="" fill className="object-cover" unoptimized={imagePreview.startsWith("blob:")} />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-300">
                         <Tag className="w-8 h-8" />
@@ -488,7 +488,7 @@ function CategoryCard({ cat, onEdit, onDelete }: { cat: Category; onEdit: (c: Ca
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex gap-3">
       <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">
         {thumb ? (
-          <Image src={thumb} alt="" fill className="object-cover" sizes="64px" />
+          <MediaImage src={thumb} alt="" fill className="object-cover" sizes="64px" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-300">
             <Tag className="w-6 h-6" />

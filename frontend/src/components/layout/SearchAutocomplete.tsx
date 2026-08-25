@@ -1,10 +1,10 @@
 "use client";
 
+import MediaImage from "@/components/ui/MediaImage";
 import api from "@/lib/api";
 import { absoluteMediaUrl } from "@/lib/media";
 import { formatCurrency } from "@/lib/utils";
 import { Loader2, Search, SearchX, ShoppingBag, UtensilsCrossed, X } from "lucide-react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
@@ -422,7 +422,7 @@ export default function SearchAutocomplete({
                                           >
                                               <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-gray-100 ring-1 ring-gray-200/70">
                                                   {image ? (
-                                                      <Image
+                                                      <MediaImage
                                                           src={image}
                                                           alt=""
                                                           fill

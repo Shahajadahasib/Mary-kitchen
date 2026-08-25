@@ -1,5 +1,5 @@
 "use client";
-import Image from "next/image";
+import MediaImage from "@/components/ui/MediaImage";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
@@ -35,7 +35,7 @@ function BannerCard({ banner, hero }: { banner: Banner; hero?: boolean }) {
 
   const inner = (
     <div className={`relative w-full overflow-hidden rounded-2xl bg-gray-100 ${heightClass}`}>
-      <Image
+      <MediaImage
         src={banner.image}
         alt={banner.title}
         fill

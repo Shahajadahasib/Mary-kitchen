@@ -1,8 +1,8 @@
 "use client";
 
+import MediaImage from "@/components/ui/MediaImage";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Image from "next/image";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import {
@@ -216,7 +216,7 @@ export default function AdminMenuItemsPage() {
                                                 <div className="flex items-center gap-3">
                                                     <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
                                                         {img ? (
-                                                            <Image
+                                                            <MediaImage
                                                                 src={img}
                                                                 alt={item.name}
                                                                 fill

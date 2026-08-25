@@ -1,4 +1,5 @@
 "use client";
+import MediaImage from "@/components/ui/MediaImage";
 import SearchAutocomplete from "@/components/layout/SearchAutocomplete";
 import { useStoreProfile } from "@/hooks/useStoreProfile";
 import api from "@/lib/api";
@@ -19,7 +20,6 @@ import {
     UserRound,
     X,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -152,7 +152,7 @@ export default function Header() {
                             className="flex min-w-0 items-center gap-2 rounded-lg text-xl font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                         >
                             {storeProfile?.logo_url ? (
-                                <Image
+                                <MediaImage
                                     src={storeProfile.logo_url}
                                     alt={storeProfile.name}
                                     width={32}

@@ -1,10 +1,10 @@
 "use client";
+import MediaImage from "@/components/ui/MediaImage";
 import api from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 import { useGroceryCart } from "@/store/cartStore";
 import { Heart, Minus, Plus, ShoppingCart, Star } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -121,7 +121,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             {/* Image */}
             <div className="relative overflow-hidden rounded-t-xl bg-gray-100 h-36 sm:h-44 md:h-48">
                 {product.primary_image ? (
-                    <Image
+                    <MediaImage
                         src={product.primary_image}
                         alt={product.name}
                         fill

@@ -1,4 +1,5 @@
 "use client";
+import MediaImage from "@/components/ui/MediaImage";
 import ReviewSection from "@/components/product/ReviewSection";
 import { Skeleton } from "@/components/ui/Skeleton";
 import api from "@/lib/api";
@@ -15,7 +16,6 @@ import {
     ShoppingCart,
     Star,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -151,7 +151,7 @@ export default function ProductDetailPage() {
                 <div>
                     <div className="relative h-64 sm:h-80 md:h-auto md:aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-3">
                         {images[activeImage] && primaryImageSrc(activeImage) ? (
-                            <Image
+                            <MediaImage
                                 src={primaryImageSrc(activeImage)!}
                                 alt={
                                     images[activeImage].alt_text || product.name
@@ -190,7 +190,7 @@ export default function ProductDetailPage() {
                                             : "border-gray-200"
                                     }`}
                                 >
-                                    <Image
+                                    <MediaImage
                                         src={
                                             absoluteMediaUrl(img.image) ||
                                             img.image

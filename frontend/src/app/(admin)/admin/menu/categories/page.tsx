@@ -1,8 +1,8 @@
 "use client";
 
+import MediaImage from "@/components/ui/MediaImage";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Image from "next/image";
 import toast from "react-hot-toast";
 import { Loader2, Pencil, Plus, Trash2, UtensilsCrossed, X } from "lucide-react";
 import ConfirmModal from "@/components/admin/ConfirmModal";
@@ -230,7 +230,7 @@ export default function AdminMenuCategoriesPage() {
                                                 <div className="flex items-center gap-3">
                                                     <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
                                                         {img ? (
-                                                            <Image
+                                                            <MediaImage
                                                                 src={img}
                                                                 alt={cat.name}
                                                                 fill
@@ -394,7 +394,7 @@ export default function AdminMenuCategoriesPage() {
                                 <div className="flex items-center gap-3">
                                     <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-gray-100">
                                         {imagePreview ? (
-                                            <Image
+                                            <MediaImage
                                                 src={imagePreview}
                                                 alt=""
                                                 fill
