@@ -31,7 +31,7 @@ import Link from "next/link";
  */
 export default function RestaurantHero() {
     return (
-        <section className="relative isolate overflow-hidden bg-brand-950 text-white">
+        <section className="relative isolate overflow-hidden bg-neutral-950 text-white">
             <Image
                 src="/assets/restaurant.jpg"
                 alt=""
@@ -45,22 +45,22 @@ export default function RestaurantHero() {
             {/* Directional scrim — vertical on phones, horizontal from md up. */}
             <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-b from-brand-950/85 via-brand-900/70 to-brand-950/80
-                           md:bg-gradient-to-r md:from-brand-950/90 md:via-brand-900/65 md:to-brand-900/10"
+                className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/50 to-black/70
+                           md:bg-gradient-to-r md:from-black/85 md:via-black/55 md:to-transparent"
             />
             {/* Edge scrim — keeps the header and the strip below it readable. */}
             <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-t from-brand-950/80 via-transparent to-brand-950/45"
+                className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/45"
             />
             {/* A single warm highlight, so the photo does not read as grey. */}
             <div
                 aria-hidden="true"
-                className="absolute -right-24 top-1/2 hidden h-[28rem] w-[28rem] -translate-y-1/2 rounded-full bg-brand-400/25 blur-3xl lg:block"
+                className="absolute -right-20 top-1/2 hidden h-[26rem] w-[26rem] -translate-y-1/2 rounded-full bg-brand-500/25 blur-3xl lg:block"
             />
 
-            <div className="container-xl relative px-4 py-12 sm:py-16 lg:py-20">
-                <div className="max-w-2xl">
+            <div className="container-xl relative px-4 py-12 sm:py-14 lg:py-16">
+                <div className="max-w-3xl">
                     <p className="mb-4 flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium backdrop-blur-md sm:mb-5 sm:px-4 sm:text-sm">
                         <UtensilsCrossed
                             className="h-3.5 w-3.5 text-brand-300 sm:h-4 sm:w-4"
@@ -69,7 +69,7 @@ export default function RestaurantHero() {
                         <span>Takeaway &amp; delivery across Darwin NT</span>
                     </p>
 
-                    <h1 className="mb-3 max-w-3xl text-[2rem] font-extrabold leading-[1.1] tracking-tight drop-shadow-sm sm:mb-4 sm:text-5xl lg:text-6xl">
+                    <h1 className="mb-3 text-[2rem] font-extrabold leading-[1.1] tracking-tight drop-shadow-sm sm:mb-4 sm:text-[2.75rem] lg:text-[3.25rem]">
                         Home-Style Meals
                         <br />
                         <span className="text-brand-300">
@@ -98,7 +98,7 @@ export default function RestaurantHero() {
                         </a>
                         <Link
                             href="/restaurant?is_featured=true"
-                            className="rounded-xl border border-white/25 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-md transition duration-200 hover:border-white/40 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-950 active:scale-95 sm:px-8 sm:text-base"
+                            className="rounded-xl border border-white/35 bg-white/15 px-6 py-3 text-sm font-semibold text-white backdrop-blur-md transition duration-200 hover:border-white/50 hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-950 active:scale-95 sm:px-8 sm:text-base"
                         >
                             Chef&apos;s picks
                         </Link>

@@ -50,7 +50,7 @@ export default function RestaurantShell({
                 once scrolled, and a blurred bar cannot be legible against both.
                 The action icons share the `header-action` skin with the grocery
                 header, so the two storefronts feel like one product. */}
-            <header className="sticky top-0 z-50 bg-brand-700 text-white shadow-lg">
+            <header className="sticky top-0 z-50 bg-brand-600 text-white shadow-lg">
                 <div className="container-xl">
                     <div className="flex items-center gap-2 py-2.5 sm:gap-4">
                         <Link
