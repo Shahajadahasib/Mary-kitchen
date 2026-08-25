@@ -172,7 +172,7 @@ export default function MenuItemDetailPage() {
                     </div>
 
                     {images.length > 1 && (
-                        <div className="flex gap-2 overflow-x-auto pb-1">
+                        <div className="scrollbar-slim flex gap-2 overflow-x-auto pb-1.5">
                             {images.map((img, i) => {
                                 const thumb = absoluteMediaUrl(img.image);
                                 if (!thumb) return null;

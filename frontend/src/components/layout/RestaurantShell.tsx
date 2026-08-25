@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChefHat, ShoppingBag, ShoppingBasket } from "lucide-react";
+import { ChefHat, Package, ShoppingBag, ShoppingBasket, UserRound } from "lucide-react";
 import { useEffect } from "react";
 import VisitTracker from "@/components/analytics/VisitTracker";
 import Footer from "@/components/layout/Footer";
@@ -45,64 +45,104 @@ export default function RestaurantShell({
                 tracking only the grocery shop overstated the rate. */}
             <VisitTracker />
 
-            <header className="bg-brand-700 text-white sticky top-0 z-50 shadow-lg">
+            {/* Solid rather than translucent on purpose: this bar sits over the
+                hero photograph at the top of /restaurant and over white content
+                once scrolled, and a blurred bar cannot be legible against both.
+                The action icons share the `header-action` skin with the grocery
+                header, so the two storefronts feel like one product. */}
+            <header className="sticky top-0 z-50 bg-gradient-to-r from-brand-800 to-brand-700 text-white shadow-lg">
                 <div className="container-xl">
-                    <div className="flex items-center gap-3 sm:gap-4 py-3">
+                    <div className="flex items-center gap-2 py-2.5 sm:gap-4">
                         <Link
                             href="/restaurant"
-                            className="flex items-center gap-2 font-bold text-base sm:text-xl flex-shrink-0"
+                            className="flex min-w-0 items-center gap-2 rounded-lg text-base font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:text-xl"
                         >
                             <ChefHat
-                                className="w-7 h-7 flex-shrink-0"
+                                className="h-7 w-7 flex-shrink-0"
                                 strokeWidth={1.5}
                                 aria-hidden="true"
                             />
-                            <span className="leading-tight">
+                            <span className="truncate leading-tight">
                                 Mary Ben&apos;s Kitchen
                                 <span className="hidden sm:inline"> Restaurant</span>
                             </span>
                         </Link>
 
-                        <nav className="ml-auto flex items-center gap-3 sm:gap-5 text-sm">
-                            <Link
-                                href="/shop"
-                                className="hidden md:inline-flex items-center gap-1.5 text-white/90 hover:text-white transition-colors"
-                            >
-                                <ShoppingBasket className="w-4 h-4" aria-hidden="true" />
-                                Grocery shop
-                            </Link>
-
+                        <nav className="ml-auto flex flex-shrink-0 items-center gap-1 text-sm sm:gap-2">
                             {signedIn && (
                                 <Link
                                     href="/restaurant/orders"
-                                    className="hidden sm:inline text-white/90 hover:text-white transition-colors"
+                                    className="header-action hidden sm:inline-flex lg:w-auto lg:gap-2 lg:px-3.5"
+                                    aria-label="My orders"
                                 >
-                                    My orders
+                                    <Package
+                                        className="h-5 w-5 shrink-0"
+                                        strokeWidth={1.75}
+                                        aria-hidden="true"
+                                    />
+                                    <span className="hidden font-medium lg:inline">
+                                        My orders
+                                    </span>
+                                </Link>
+                            )}
+
+                            {!signedIn && (
+                                <Link
+                                    href={authHref("/login", pathname)}
+                                    className="header-action lg:w-auto lg:gap-2 lg:px-3.5"
+                                    aria-label="Sign in"
+                                >
+                                    <UserRound
+                                        className="h-5 w-5 shrink-0"
+                                        strokeWidth={1.75}
+                                        aria-hidden="true"
+                                    />
+                                    <span className="hidden font-medium lg:inline">
+                                        Sign in
+                                    </span>
                                 </Link>
                             )}
 
                             <Link
                                 href="/restaurant/cart"
-                                className="relative inline-flex items-center gap-1.5 text-white/90 hover:text-white transition-colors"
+                                className="header-action group lg:w-auto lg:gap-2 lg:px-3.5"
                                 aria-label={`Your order (${cartCount} item${cartCount === 1 ? "" : "s"})`}
                             >
-                                <ShoppingBag className="w-5 h-5" aria-hidden="true" />
-                                <span className="hidden sm:inline">Order</span>
+                                <ShoppingBag
+                                    className="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:-translate-y-0.5"
+                                    strokeWidth={1.75}
+                                    aria-hidden="true"
+                                />
+                                <span className="hidden font-medium lg:inline">
+                                    Order
+                                </span>
                                 {cartCount > 0 && (
-                                    <span className="absolute -top-1.5 -left-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-brand-700">
-                                        {cartCount}
+                                    <span
+                                        key={cartCount}
+                                        className="header-badge bg-white text-brand-800 ring-2 ring-brand-700"
+                                    >
+                                        {cartCount > 9 ? "9+" : cartCount}
                                     </span>
                                 )}
                             </Link>
 
-                            {!signedIn && (
-                                <Link
-                                    href={authHref("/login", pathname)}
-                                    className="font-medium text-white/90 hover:text-white transition-colors"
-                                >
-                                    Sign in
-                                </Link>
-                            )}
+                            {/* Reciprocal of the "Restaurant" button in the
+                                grocery header's action row — same placement
+                                rule, same green-vs-terracotta signalling. */}
+                            <Link
+                                href="/shop"
+                                className="header-action bg-primary-700 ring-primary-400/40 hover:bg-primary-800 hover:ring-primary-300/60 focus-visible:ring-primary-200 lg:w-auto lg:gap-2 lg:px-3.5"
+                                aria-label="Grocery shop"
+                            >
+                                <ShoppingBasket
+                                    className="h-5 w-5 shrink-0"
+                                    strokeWidth={1.75}
+                                    aria-hidden="true"
+                                />
+                                <span className="hidden font-semibold lg:inline">
+                                    Grocery
+                                </span>
+                            </Link>
                         </nav>
                     </div>
                 </div>

@@ -90,13 +90,13 @@ function MenuBrowse() {
 
             {/* Category chips */}
             {categories.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-4 px-4 sm:mx-0 sm:px-0">
+                <div className="scrollbar-slim -mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-2.5 sm:mx-0 sm:px-0">
                     <button
                         onClick={() => setParam("category", "")}
-                        className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                        className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition duration-200 ${
                             !categorySlug
-                                ? "bg-brand-600 text-white"
-                                : "bg-white text-gray-700 border border-gray-200 hover:border-gray-300"
+                                ? "bg-brand-600 text-white shadow-sm shadow-brand-900/25"
+                                : "border border-gray-200 bg-white text-gray-700 hover:border-brand-300 hover:text-brand-700"
                         }`}
                     >
                         All dishes
@@ -105,10 +105,10 @@ function MenuBrowse() {
                         <button
                             key={c.id}
                             onClick={() => setParam("category", c.slug)}
-                            className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                            className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition duration-200 ${
                                 categorySlug === c.slug
-                                    ? "bg-brand-600 text-white"
-                                    : "bg-white text-gray-700 border border-gray-200 hover:border-gray-300"
+                                    ? "bg-brand-600 text-white shadow-sm shadow-brand-900/25"
+                                    : "border border-gray-200 bg-white text-gray-700 hover:border-brand-300 hover:text-brand-700"
                             }`}
                         >
                             {c.name}
