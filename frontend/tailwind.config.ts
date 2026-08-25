@@ -17,27 +17,29 @@ const config: Config = {
         // The warm accent — the restaurant storefront's primary colour, and
         // the grocery shop's secondary (sale badges, the search button).
         //
-        // A terracotta-leaning orange: hue sits around 17° rather than the 25°
-        // of the plain safety-orange this replaced, which is what separates it
-        // from fast-food signage, while the lightness stays high enough that
-        // large fields of it — the restaurant header, the hero — read warm and
-        // appetising rather than brick.
+        // A terracotta-leaning orange: hue sits near 17° rather than the 25°
+        // of a plain safety-orange, which is what keeps it away from fast-food
+        // signage. Saturation is deliberately high through the middle of the
+        // scale — an earlier pass sat lower and read as though a little black
+        // had been mixed in, which is exactly what you notice on a large field
+        // like the restaurant header.
         //
-        // Contrast against white, measured: 600 → 3.87:1, 700 → 5.55:1. Put
-        // white text below ~18px on 700 or darker; 600 is for larger labels,
-        // icon-only fills and accents. 400/500 are tints and decoration only.
+        // Contrast against white: 600 → 3.47:1, 700 → 4.96:1. Small white text
+        // belongs on 700; 600 is for large labels, headers and icon fills. That
+        // is a deliberate trade of contrast for warmth, matching what the site
+        // shipped with before the palette work.
         brand: {
-          50: "#fff7f1",
-          100: "#ffebdd",
-          200: "#fed4b8",
-          300: "#fbb488",
-          400: "#f78d55",
-          500: "#f06a2e",
-          600: "#dd5620",
-          700: "#b93f14",
-          800: "#963517",
-          900: "#7a2e17",
-          950: "#431308",
+          50: "#fff8f4",
+          100: "#ffece1",
+          200: "#ffd6bf",
+          300: "#ffb894",
+          400: "#fb9160",
+          500: "#f56f36",
+          600: "#ec5a1d",
+          700: "#c4460f",
+          800: "#9d3a13",
+          900: "#7e3116",
+          950: "#451309",
         },
         primary: {
           DEFAULT: "#1a6b3c",

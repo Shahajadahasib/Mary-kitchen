@@ -173,20 +173,22 @@ html {
   .header-action {
     @apply relative inline-flex h-10 w-10 items-center justify-center rounded-xl
            bg-white/10 text-white ring-1 ring-inset ring-white/15
-           transition duration-200 ease-out
-           hover:bg-white/20 hover:ring-white/30
+           transition-all duration-200 ease-out
+           hover:-translate-y-0.5 hover:bg-white/20 hover:shadow-lg
+           hover:shadow-black/20 hover:ring-white/30
            focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70
-           active:scale-95;
+           active:translate-y-0 active:scale-95 active:shadow-none;
   }
 
   /* Same skin, but sized for a label sitting next to the icon. */
   .header-action-wide {
     @apply relative inline-flex h-10 items-center gap-2 rounded-xl px-3
            bg-white/10 text-white ring-1 ring-inset ring-white/15
-           transition duration-200 ease-out
-           hover:bg-white/20 hover:ring-white/30
+           transition-all duration-200 ease-out
+           hover:-translate-y-0.5 hover:bg-white/20 hover:shadow-lg
+           hover:shadow-black/20 hover:ring-white/30
            focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70
-           active:scale-95;
+           active:translate-y-0 active:scale-95 active:shadow-none;
   }
 
   /* Count bubble. `ring-2` in the header colour punches it away from the icon
@@ -245,6 +247,8 @@ html {
   .header-action-wide {
     transition-property: background-color, box-shadow;
   }
+  .header-action:hover,
+  .header-action-wide:hover,
   .header-action:active,
   .header-action-wide:active {
     transform: none;
