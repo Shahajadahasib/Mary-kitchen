@@ -58,11 +58,146 @@
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #f1f5f9; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+/* ── Scrollbars ──────────────────────────────────────────────────────────────
+   Two flavours, both slim and fully rounded. The page-level one is neutral;
+   `.scrollbar-slim` / `.scrollbar-slim-inverse` are opt-in for the horizontal
+   scrollers (the category nav, chip rows) where the default browser bar looked
+   like a system widget dropped onto the design.
+
+   Firefox has no ::-webkit pseudo-elements — it gets `scrollbar-width` and
+   `scrollbar-color`, which is why every rule below sets both. Safari and Chrome
+   read the pseudo-elements; the standard properties are ignored there. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+  background-clip: content-box;
+}
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+@layer components {
+  /* Horizontal scroller on a light surface. */
+  .scrollbar-slim {
+    scrollbar-width: thin;
+    scrollbar-color: theme("colors.gray.300") transparent;
+  }
+  .scrollbar-slim::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  .scrollbar-slim::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-slim::-webkit-scrollbar-thumb {
+    background: theme("colors.gray.300");
+    border-radius: 9999px;
+    transition: background-color 200ms ease;
+  }
+  .scrollbar-slim:hover::-webkit-scrollbar-thumb {
+    background: theme("colors.gray.400");
+  }
+  .scrollbar-slim::-webkit-scrollbar-thumb:hover {
+    background: theme("colors.brand.500");
+  }
+  .scrollbar-slim::-webkit-scrollbar-thumb:active {
+    background: theme("colors.brand.600");
+  }
+
+  /* Horizontal scroller on a dark brand surface — the category nav bar. The
+     thumb rests at low opacity so it reads as part of the bar, and warms to
+     the brand accent on hover so the affordance is unmistakable once the
+     pointer is in the region. */
+  .scrollbar-slim-inverse {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.28) transparent;
+  }
+  .scrollbar-slim-inverse::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  .scrollbar-slim-inverse::-webkit-scrollbar-track {
+    background: rgb(0 0 0 / 0.12);
+    border-radius: 9999px;
+  }
+  .scrollbar-slim-inverse::-webkit-scrollbar-thumb {
+    background: rgb(255 255 255 / 0.28);
+    border-radius: 9999px;
+    transition: background-color 200ms ease;
+  }
+  .scrollbar-slim-inverse:hover::-webkit-scrollbar-thumb {
+    background: rgb(255 255 255 / 0.45);
+  }
+  .scrollbar-slim-inverse::-webkit-scrollbar-thumb:hover {
+    background: theme("colors.brand.400");
+  }
+  .scrollbar-slim-inverse::-webkit-scrollbar-thumb:active {
+    background: theme("colors.brand.500");
+  }
+  .scrollbar-slim-inverse:hover {
+    scrollbar-color: rgb(255 255 255 / 0.45) rgb(0 0 0 / 0.12);
+  }
+
+  /* Scroller with no visible bar at all — used where a fade edge or chips
+     already signal that the row continues. */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ── Header action icons ─────────────────────────────────────────────────────
+   Cart / notifications / account share one target size and one interaction
+   language across both storefronts, so the row reads as a set rather than as
+   three separately styled links. The translucent surface works on either the
+   grocery green or the restaurant terracotta without per-storefront overrides.
+
+   `:active` scales down rather than up: the press should feel like the button
+   receives the click, and it also keeps the badge from jumping. */
+@layer components {
+  .header-action {
+    @apply relative inline-flex h-10 w-10 items-center justify-center rounded-xl
+           bg-white/10 text-white ring-1 ring-inset ring-white/15
+           transition duration-200 ease-out
+           hover:bg-white/20 hover:ring-white/30
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70
+           active:scale-95;
+  }
+
+  /* Same skin, but sized for a label sitting next to the icon. */
+  .header-action-wide {
+    @apply relative inline-flex h-10 items-center gap-2 rounded-xl px-3
+           bg-white/10 text-white ring-1 ring-inset ring-white/15
+           transition duration-200 ease-out
+           hover:bg-white/20 hover:ring-white/30
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70
+           active:scale-95;
+  }
+
+  /* Count bubble. `ring-2` in the header colour punches it away from the icon
+     behind it, which is what stops the digits smearing into the glyph. */
+  .header-badge {
+    @apply pointer-events-none absolute -right-1 -top-1 flex h-[18px] min-w-[18px]
+           items-center justify-center rounded-full px-1
+           text-[10px] font-bold leading-none tabular-nums
+           animate-badge-pop;
+  }
+}
 
 /* Loading animation */
 .skeleton {
@@ -95,9 +230,23 @@
    rather than animating into it. */
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
-  .animate-fade-in-up {
+  .animate-fade-in-up,
+  .animate-badge-pop,
+  .animate-bell-swing,
+  .animate-dropdown-in {
     animation: none;
     opacity: 1;
+    transform: none;
+  }
+
+  /* The icon buttons and dish tiles lean on transform for their hover/press
+     feedback; drop the movement but keep the colour change. */
+  .header-action,
+  .header-action-wide {
+    transition-property: background-color, box-shadow;
+  }
+  .header-action:active,
+  .header-action-wide:active {
     transform: none;
   }
 }
