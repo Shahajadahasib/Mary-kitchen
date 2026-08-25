@@ -1,10 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Search, UtensilsCrossed } from "lucide-react";
+import { UtensilsCrossed, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense } from "react";
+import FilterDropdown from "@/components/menu/FilterDropdown";
 import MenuItemCard from "@/components/menu/MenuItemCard";
+import SearchAutocomplete from "@/components/layout/SearchAutocomplete";
 import RestaurantHero from "@/components/layout/RestaurantHero";
 import { Skeleton } from "@/components/ui/Skeleton";
 import api from "@/lib/api";
@@ -25,11 +27,7 @@ function MenuBrowse() {
 
     const categorySlug = searchParams.get("category") || "";
     const dietaryTag = searchParams.get("dietary_tag") || "";
-    const [search, setSearch] = useState(searchParams.get("search") || "");
-
-    useEffect(() => {
-        setSearch(searchParams.get("search") || "");
-    }, [searchParams]);
+    const activeSearch = searchParams.get("search") || "";
 
     const { data: categoriesData } = useQuery({
         queryKey: ["menu-categories"],
@@ -54,11 +52,6 @@ function MenuBrowse() {
         router.push(`/restaurant?${next.toString()}`);
     };
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        setParam("search", search.trim());
-    };
-
     const handlePageChange = (page: number) => {
         const next = new URLSearchParams(searchParams.toString());
         next.set("page", String(page));
@@ -70,73 +63,65 @@ function MenuBrowse() {
 
     return (
         <div id="menu" className="container-xl scroll-mt-20 px-4 py-6 md:py-8">
-            <form onSubmit={handleSearch} className="flex gap-2 mb-4">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search the menu..."
-                        className="input-field pl-10 w-full focus:ring-brand-500"
+            {/* Toolbar: one row on every width. The search field used to run
+                the full page width with a separate button beside it, and the
+                categories and dietary tags below it were two horizontal chip
+                rows — which wrapped into a ragged pile on a phone and pushed
+                the dish grid off the first screen. Both filters are dropdowns
+                now, so the whole control set occupies a single fixed-height
+                band and the search field can be a sensible width. */}
+            <div className="mb-6 flex flex-col gap-2.5 sm:flex-row sm:items-center">
+                <SearchAutocomplete
+                    channel="restaurant"
+                    variant="panel"
+                    surface="light"
+                    className="sm:max-w-md sm:flex-1"
+                />
+
+                <div className="flex gap-2.5 sm:ml-auto">
+                    <FilterDropdown
+                        label="All dishes"
+                        allLabel="All dishes"
+                        value={categorySlug}
+                        onChange={(v) => setParam("category", v)}
+                        options={categories.map((c) => ({
+                            value: c.slug,
+                            label: c.name,
+                            hint: c.item_count,
+                        }))}
+                        className="flex-1 sm:w-44 sm:flex-none"
+                    />
+                    <FilterDropdown
+                        label="Dietary"
+                        allLabel="Any dietary"
+                        value={dietaryTag}
+                        onChange={(v) => setParam("dietary_tag", v)}
+                        options={DIETARY_FILTERS.map((tag) => ({
+                            value: tag,
+                            label: dietaryLabel(tag),
+                        }))}
+                        className="flex-1 sm:w-40 sm:flex-none"
                     />
                 </div>
-                <button
-                    type="submit"
-                    className="rounded-lg bg-brand-600 px-5 font-semibold text-white transition-colors hover:bg-brand-700 whitespace-nowrap"
-                >
-                    Search
-                </button>
-            </form>
+            </div>
 
-            {/* Category chips */}
-            {categories.length > 0 && (
-                <div className="scrollbar-slim -mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-2.5 sm:mx-0 sm:px-0">
+            {/* An applied search is the one filter with no visible control of
+                its own — the field clears itself after submitting — so it gets
+                a removable chip instead. */}
+            {activeSearch && (
+                <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+                    <span className="text-gray-500">Showing results for</span>
                     <button
-                        onClick={() => setParam("category", "")}
-                        className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition duration-200 ${
-                            !categorySlug
-                                ? "bg-brand-600 text-white shadow-sm shadow-brand-900/25"
-                                : "border border-gray-200 bg-white text-gray-700 hover:border-brand-300 hover:text-brand-700"
-                        }`}
+                        type="button"
+                        onClick={() => setParam("search", "")}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 py-1 pl-3 pr-2 font-medium text-brand-800 ring-1 ring-inset ring-brand-200 transition-colors hover:bg-brand-100"
                     >
-                        All dishes
+                        &ldquo;{activeSearch}&rdquo;
+                        <X className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span className="sr-only">Clear search</span>
                     </button>
-                    {categories.map((c) => (
-                        <button
-                            key={c.id}
-                            onClick={() => setParam("category", c.slug)}
-                            className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition duration-200 ${
-                                categorySlug === c.slug
-                                    ? "bg-brand-600 text-white shadow-sm shadow-brand-900/25"
-                                    : "border border-gray-200 bg-white text-gray-700 hover:border-brand-300 hover:text-brand-700"
-                            }`}
-                        >
-                            {c.name}
-                        </button>
-                    ))}
                 </div>
             )}
-
-            {/* Dietary chips */}
-            <div className="flex flex-wrap gap-2 mb-6">
-                {DIETARY_FILTERS.map((tag) => {
-                    const active = dietaryTag === tag;
-                    return (
-                        <button
-                            key={tag}
-                            onClick={() => setParam("dietary_tag", active ? "" : tag)}
-                            aria-pressed={active}
-                            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                                active
-                                    ? "bg-emerald-600 text-white"
-                                    : "bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100"
-                            }`}
-                        >
-                            {dietaryLabel(tag)}
-                        </button>
-                    );
-                })}
-            </div>
 
             {isLoading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
