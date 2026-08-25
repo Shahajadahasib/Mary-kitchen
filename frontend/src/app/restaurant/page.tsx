@@ -5,6 +5,7 @@ import { Search, UtensilsCrossed } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import MenuItemCard from "@/components/menu/MenuItemCard";
+import RestaurantHero from "@/components/layout/RestaurantHero";
 import { Skeleton } from "@/components/ui/Skeleton";
 import api from "@/lib/api";
 import { dietaryLabel, type MenuCategory, type MenuItemListEntry } from "@/types/menu";
@@ -68,7 +69,7 @@ function MenuBrowse() {
     const items: MenuItemListEntry[] = data?.results ?? [];
 
     return (
-        <div className="container-xl px-4 py-6 md:py-8">
+        <div id="menu" className="container-xl scroll-mt-20 px-4 py-6 md:py-8">
             <form onSubmit={handleSearch} className="flex gap-2 mb-4">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -195,21 +196,11 @@ function MenuBrowse() {
 export default function RestaurantMenuPage() {
     return (
         <div>
-            {/* Rendered outside the Suspense boundary on purpose. MenuBrowse
-                uses useSearchParams, so it suspends during SSR and only the
-                skeleton reaches the initial HTML — a crawler that does not run
-                JavaScript would otherwise see no heading and no copy at all. */}
-            <header className="container-xl px-4 pt-6 md:pt-8">
-                <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-                    Restaurant Menu — Takeaway &amp; Delivery in Darwin NT
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-600">
-                    Home-style meals cooked to order at Mary Ben&apos;s Kitchen in
-                    Winnellie. Collect from the kitchen or have it delivered across
-                    Darwin, Palmerston, Casuarina, Nightcliff and the northern
-                    suburbs.
-                </p>
-            </header>
+            {/* Outside the Suspense boundary on purpose: MenuBrowse suspends on
+                useSearchParams, so anything inside it reaches crawlers as a
+                skeleton. The hero owns the <h1> and the Darwin-local copy, and
+                is a server component so both land in the initial HTML. */}
+            <RestaurantHero />
 
             <Suspense
                 fallback={
