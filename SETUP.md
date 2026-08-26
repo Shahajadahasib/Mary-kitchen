@@ -447,6 +447,67 @@ For a fresh production environment:
 5. Run `python manage.py collectstatic` before deployment.
 6. Serve over HTTPS — the security headers are pre-configured in the production settings.
 
+### Deploying by hand
+
+Merging to `main` is the deploy — there is no separate button, and that applies to a
+documentation-only merge just as much as a feature. The deploy job is the normal path, but it
+depends on GitHub's runner reaching the VPS over SSH, and that is the part outside your control.
+When the runner fails with `dial tcp …:22: i/o timeout`, nothing ran on the box at all and the
+release simply did not happen.
+
+The same release can then be shipped from any machine that *can* log in. This is not a lesser
+fallback: it runs the identical script from the identical commit, so the outcome matches a green
+deploy job, snapshot and rollback included.
+
+```bash
+ssh root@your-vps
+cd /var/www/Mary-kitchen
+
+# The exact commit CI tested — normally the merge commit on main. Pin the full
+# SHA rather than relying on "whatever main points at", so a push that lands
+# while you are working cannot change what you ship.
+DEPLOY_SHA=<full-40-character-sha>
+
+git fetch origin --prune
+# Read the script out of the commit being deployed, into a file outside the
+# working tree. The checkout on the box may predate the script existing, and
+# bash reads a script incrementally — letting the deploy overwrite the file it
+# is currently executing is a real way to corrupt a release.
+git show "$DEPLOY_SHA:deploy/deploy.sh" > /tmp/mary-kitchen-deploy.sh
+bash /tmp/mary-kitchen-deploy.sh "$DEPLOY_SHA"
+```
+
+Those are the same commands the workflow sends over SSH; if they ever drift, copy them from the
+`script:` block in `.github/workflows/ci.yml` rather than from here. Get the SHA with
+`git log --format=%H -1 origin/main`, or from the merge commit on the pull request.
+
+Nothing needs cleaning up afterwards. The script leaves the checkout at the deployed commit, so the
+next CI deploy sees it as `PREVIOUS_SHA` and can roll back to it normally.
+
+**Confirm the release landed**, from your own machine rather than the box — a deploy that reports
+success can still be serving the previous build, and the exit code alone will not tell you:
+
+```bash
+for p in / /shop /restaurant /admin; do
+    curl -s -o /dev/null -w "$p -> %{http_code}\n" "https://marybenskitchen.com$p"
+done
+curl -s -o /dev/null -w "api -> %{http_code}\n" https://marybenskitchen.com/api/v1/products/
+
+# Which build is actually being served: the hashed chunk names change with the
+# build, so compare one against the `Route (app)` table in the deploy output.
+curl -s https://marybenskitchen.com/ | grep -oE 'chunks/[0-9]+-[a-z0-9]+\.js' | sort -u | head -3
+
+# The API origin is inlined into the browser bundle at build time, so a wrong
+# value looks perfectly healthy from the server and fails for every visitor.
+for c in $(curl -s https://marybenskitchen.com/ \
+           | grep -oE '/_next/static/chunks/[A-Za-z0-9._/-]+\.js' | sort -u); do
+    curl -s "https://marybenskitchen.com$c"
+done | grep -ohE 'https?://[A-Za-z0-9.:_-]*/api/v1' | sort -u
+```
+
+The last one should print the public origin and nothing else. `localhost:8000` or `backend:8000`
+means the image was built without `NEXT_PUBLIC_API_URL` reaching it.
+
 ### Published ports
 
 Every port in `docker-compose.yml` is published to `${BIND_HOST:-127.0.0.1}`, never `0.0.0.0`.

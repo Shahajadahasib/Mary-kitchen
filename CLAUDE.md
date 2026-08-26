@@ -93,6 +93,12 @@ container before any new container takes traffic, then health-checks both servic
 rolls back to the previous commit if either fails to answer. Edit that script rather than
 inlining steps into the workflow, so the same sequence can be run by hand on the box.
 
+Running it by hand is a supported path, not an emergency hack — the deploy job depends on
+GitHub's runner reaching the VPS over SSH, which has failed before with
+`dial tcp …:22: i/o timeout`, and the same commit can then be shipped from any machine that
+can log in. SETUP.md, "Deploying by hand", has the commands and the post-deploy checks that
+confirm which build is actually being served.
+
 `render.yaml` is a second, unused deployment path kept from an earlier setup
 (`autoDeploy: false`). The VPS is the live one.
 
