@@ -179,7 +179,17 @@ def create_order_from_cart(
         unit_price = variant.price if variant else product.base_price
         oos = False
 
-        stock_obj = variant if variant else product
+        # Re-read the stock row under a row lock before checking it. The
+        # prefetched copy above was loaded before this transaction began, so
+        # two customers checking out the last unit at the same time would both
+        # see it available and both decrement — overselling stock that a
+        # grocery order cannot fulfil. SELECT ... FOR UPDATE makes the second
+        # checkout wait here and then read the already-decremented value.
+        if variant:
+            stock_obj = ProductVariant.objects.select_for_update().get(pk=variant.pk)
+        else:
+            stock_obj = Product.objects.select_for_update().get(pk=product.pk)
+
         if stock_obj.stock_quantity >= item.quantity:
             stock_obj.stock_quantity -= item.quantity
             stock_obj.save(update_fields=["stock_quantity"])
@@ -221,7 +231,14 @@ def create_order_from_cart(
 
     if has_oos:
         from apps.notifications.tasks import notify_admin_out_of_stock
-        notify_admin_out_of_stock.delay(str(order.id))
+
+        # Queued on commit, not here: this runs inside the checkout
+        # transaction, so a worker that picks the task up first would look for
+        # an order the database has not committed yet and fail with
+        # DoesNotExist. Development never sees it (CELERY_TASK_ALWAYS_EAGER
+        # runs the task inline); production has a real broker and does.
+        order_id_str = str(order.id)
+        transaction.on_commit(lambda: notify_admin_out_of_stock.delay(order_id_str))
 
     return order
 
