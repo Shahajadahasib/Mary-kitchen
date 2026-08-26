@@ -178,10 +178,23 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
+        # Only acts on views that set `throttle_scope`; see the "auth" rate below.
+        "rest_framework.throttling.ScopedRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "100/hour",
+        # Browsing either storefront is anonymous, and one page view costs
+        # several requests (categories, banners, featured, menu categories in
+        # the restaurant header). At the old 100/hour a genuine visitor could
+        # be shown 429s partway through a shopping session — and adding the
+        # second storefront raised the per-visit request count further.
+        # Brute force is not what this rate defends against: django-axes caps
+        # failed logins (AXES_FAILURE_LIMIT), each OTP dies after 5 wrong
+        # guesses, and the endpoints that send email carry the "auth" scope.
+        "anon": "1000/hour",
         "user": "1000/hour",
+        # Applied via `throttle_scope = "auth"` on the credential and OTP
+        # endpoints in apps/users/views.py. It keeps password guessing and
+        # OTP-email flooding slow regardless of the anon rate above.
         "auth": "10/minute",
     },
     "EXCEPTION_HANDLER": "core.exceptions.custom_exception_handler",

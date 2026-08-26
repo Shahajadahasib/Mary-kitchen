@@ -41,6 +41,7 @@ class RegisterView(generics.CreateAPIView):
     """POST /api/v1/auth/register/"""
     serializer_class = UserRegistrationSerializer
     permission_classes = [AllowAny]
+    throttle_scope = "auth"
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -74,6 +75,7 @@ class LoginView(APIView):
     """POST /api/v1/auth/login/"""
 
     permission_classes = [AllowAny]
+    throttle_scope = "auth"
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
@@ -163,6 +165,7 @@ class OTPRequestView(APIView):
 class OTPVerifyView(APIView):
     """POST /api/v1/auth/otp/verify/ – verify an OTP."""
     permission_classes = [AllowAny]
+    throttle_scope = "auth"
 
     def post(self, request):
         serializer = OTPVerifySerializer(data=request.data)
@@ -250,6 +253,7 @@ class PasswordResetRequestView(APIView):
 class PasswordResetConfirmView(APIView):
     """POST /api/v1/auth/password/reset/confirm/"""
     permission_classes = [AllowAny]
+    throttle_scope = "auth"
 
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
