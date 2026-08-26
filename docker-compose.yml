@@ -149,11 +149,20 @@ services:
       # container env var it never reaches the client code. The value has to be
       # reachable from the visitor's BROWSER: `backend` is a Compose service
       # name that only resolves container-to-container, never in a browser.
+      #
+      # The default is therefore the live public origin, not a service name.
+      # It used to be `http://backend:8000/api/v1`, which contradicted the note
+      # above and the "defaults are the production values" rule at the top of
+      # this file: a deploy with no root `.env` on the server would bake an
+      # unresolvable host into every visitor's bundle. Nothing would look
+      # wrong from the server's side either — the deploy health check asks
+      # Next.js for a page, and server-side rendering works fine while every
+      # call the browser makes fails. Keep this a real, browser-reachable URL.
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:8000/api/v1}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://marybenskitchen.com/api/v1}
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:8000/api/v1}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://marybenskitchen.com/api/v1}
     ports:
       - "${BIND_HOST:-127.0.0.1}:3000:3000"
     depends_on:

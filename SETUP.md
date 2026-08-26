@@ -239,7 +239,7 @@ local values, and since it is gitignored it can never leak onto the server.
 |---|---|---|
 | `DJANGO_SETTINGS_MODULE` | `mary_kitchen.settings.production` | `mary_kitchen.settings.development` |
 | `MEDIA_VOLUME` | `/var/www/Mary-kitchen/media` (VPS bind mount) | `media_data` (named volume) |
-| `NEXT_PUBLIC_API_URL` | `http://backend:8000/api/v1` | `http://localhost:8000/api/v1` |
+| `NEXT_PUBLIC_API_URL` | `https://marybenskitchen.com/api/v1` | `http://localhost:8000/api/v1` |
 
 Switching to the development settings is what makes the stack usable over plain `http://localhost`:
 production sets `DEBUG=False` (so Django stops serving `/media/`, and uploaded images 404) and forces
