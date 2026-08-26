@@ -7,6 +7,24 @@ DEBUG = False
 
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 
+# Loopback names are always allowed, on top of whatever the environment sets.
+#
+# Both health probes reach the API over loopback — deploy/deploy.sh curls
+# http://localhost:8000/api/v1/products/ from the host, and the backend
+# service's healthcheck in docker-compose.yml opens http://127.0.0.1:8000/...
+# from inside the container. Django resolves the Host header before routing, so
+# without these entries it answers DisallowedHost/400 and the deploy concludes
+# the backend is dead. That is not hypothetical: it rolled back a release whose
+# containers had all started correctly and whose migrations had already applied.
+#
+# Accepting them costs nothing. Real traffic arrives through Nginx, which sets
+# Host to the public domain, and nothing here builds outbound links from
+# request.get_host() — core/frontend_urls.py uses FRONTEND_URL — so a spoofed
+# Host cannot poison an email link or a redirect.
+for _loopback in ("localhost", "127.0.0.1", "[::1]"):
+    if _loopback not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_loopback)
+
 # HTTPS / Security
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
