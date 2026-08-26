@@ -5,10 +5,12 @@ One ``Order``/``OrderItem`` pipeline serves both storefronts, distinguished by
 behave differently -- stock, availability and pricing -- because that is where
 a change made for one storefront most easily breaks the other.
 """
+import threading
 from decimal import Decimal
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.db import connection
+from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
@@ -83,7 +85,10 @@ class GroceryOrderCreationTests(TestCase):
         CartItem.objects.create(cart=self.cart, product=product, quantity=5)
 
         with patch("apps.notifications.tasks.notify_admin_out_of_stock.delay") as notify:
-            order = self._checkout()
+            # The alert is queued from transaction.on_commit, so it only fires
+            # once the checkout transaction has actually committed.
+            with self.captureOnCommitCallbacks(execute=True):
+                order = self._checkout()
 
         self.assertTrue(order.has_out_of_stock_items)
         self.assertTrue(order.items.get().was_out_of_stock)
@@ -92,6 +97,30 @@ class GroceryOrderCreationTests(TestCase):
         product.refresh_from_db()
         # Stock is left alone rather than driven negative.
         self.assertEqual(product.stock_quantity, 1)
+
+    def test_the_admin_alert_waits_for_the_order_to_commit(self):
+        """The out-of-stock alert must not be queued mid-transaction.
+
+        A Celery worker is a separate process reading a separate connection:
+        handed the task before the checkout commits, it looks for an order the
+        database has not published yet and fails with DoesNotExist. Development
+        never sees this because CELERY_TASK_ALWAYS_EAGER runs the task inline,
+        which is precisely why it needs a test.
+        """
+        product = make_product(stock_quantity=1)
+        CartItem.objects.create(cart=self.cart, product=product, quantity=5)
+
+        with patch("apps.notifications.tasks.notify_admin_out_of_stock.delay") as notify:
+            with self.captureOnCommitCallbacks(execute=False) as callbacks:
+                order = self._checkout()
+                # Still inside the transaction: nothing may have been sent.
+                notify.assert_not_called()
+
+            self.assertEqual(len(callbacks), 1)
+            for callback in callbacks:
+                callback()
+
+        notify.assert_called_once_with(str(order.id))
 
     def test_inactive_product_is_excluded_and_noted_in_history(self):
         live = make_product(name="Live product")
@@ -543,3 +572,64 @@ class AdminOrderSearchTests(APITestCase):
 
     def test_unrelated_term_matches_nothing(self):
         self.assertEqual(self._search("zzqq"), set())
+
+
+class ConcurrentCheckoutStockTests(TransactionTestCase):
+    """Two customers checking out the last unit at the same moment.
+
+    ``create_order_from_cart`` used to decide availability from a copy of the
+    row loaded before the transaction opened, so both checkouts read the same
+    "1 in stock", both decremented, and the shop sold a unit it did not have.
+    The stock row is now re-read under ``SELECT ... FOR UPDATE``, which makes
+    the second checkout wait for the first to commit and then see the truth.
+
+    This needs TransactionTestCase rather than TestCase: the threads below use
+    their own database connections, so they cannot see data held inside another
+    connection's uncommitted transaction.
+    """
+
+    def _buyer(self, product):
+        user = make_user()
+        cart = Cart.objects.create(user=user, channel="grocery")
+        CartItem.objects.create(cart=cart, product=product, quantity=1)
+        return user
+
+    def test_the_last_unit_is_sold_once(self):
+        product = make_product(stock_quantity=1)
+        buyers = [self._buyer(product), self._buyer(product)]
+
+        # Release both threads together, so they collide inside the checkout
+        # rather than running one after the other.
+        start = threading.Barrier(len(buyers), timeout=15)
+        flags = []
+        errors = []
+
+        def checkout(user):
+            try:
+                start.wait()
+                order = create_order_from_cart(
+                    user, order_type="pickup", channel="grocery"
+                )
+                flags.append(order.items.get().was_out_of_stock)
+            except Exception as exc:  # surfaced below, not swallowed
+                errors.append(exc)
+            finally:
+                connection.close()
+
+        with patch("apps.notifications.tasks.notify_admin_out_of_stock.delay"):
+            threads = [
+                threading.Thread(target=checkout, args=(user,)) for user in buyers
+            ]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(timeout=20)
+
+        self.assertEqual(errors, [], f"checkout raised: {errors}")
+        self.assertFalse(any(t.is_alive() for t in threads), "a checkout deadlocked")
+
+        # Exactly one buyer got the unit; the other is flagged, not oversold.
+        self.assertCountEqual(flags, [False, True])
+
+        product.refresh_from_db()
+        self.assertEqual(product.stock_quantity, 0)
