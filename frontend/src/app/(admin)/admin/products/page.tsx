@@ -5,9 +5,11 @@ import { useSearchParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import api from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
-import { Plus, Search, Edit, Trash2, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import CategoryFilterSelect from "@/components/product/CategoryFilterSelect";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { AdminSearchInput, AdminToolbar } from "@/components/admin/AdminToolbar";
+import FilterDropdown from "@/components/ui/FilterDropdown";
 import ConfirmModal, { type ConfirmModalVariant } from "@/components/admin/ConfirmModal";
 
 type ModalState = {
@@ -155,6 +157,8 @@ export default function AdminProductsPage() {
     category?: string;
     page?: number;
     page_size?: number;
+    /** Debounced typing replaces the entry instead of stacking history. */
+    replace?: boolean;
   }) => {
     const nextSearch = patch.search !== undefined ? patch.search : urlSearch;
     const nextCategory = patch.category !== undefined ? patch.category : urlCategory;
@@ -173,13 +177,24 @@ export default function AdminProductsPage() {
     if (nextPage > 1) p.set("page", String(nextPage));
     if (nextPageSize !== DEFAULT_PAGE_SIZE) p.set("page_size", String(nextPageSize));
     const qs = p.toString();
-    router.push(qs ? `/admin/products?${qs}` : "/admin/products");
+    const href = qs ? `/admin/products?${qs}` : "/admin/products";
+    if (patch.replace) router.replace(href);
+    else router.push(href);
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    pushListParams({ search: searchInput });
-  };
+  // The toolbar has no submit button any more — every admin list searches as
+  // you type — so the typed value reaches the URL on a debounce instead.
+  // `replace` rather than `push`, so refining a search does not bury the
+  // previous page under a dozen history entries.
+  useEffect(() => {
+    if (searchInput === urlSearch) return;
+    const t = window.setTimeout(
+      () => pushListParams({ search: searchInput, replace: true }),
+      350,
+    );
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
 
   const count = data?.count ?? 0;
   const totalPages = Math.max(1, data?.total_pages ?? 1);
@@ -188,36 +203,38 @@ export default function AdminProductsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-900">Products</h2>
-        <Link href="/admin/products/new" className="btn-primary flex items-center gap-2 text-sm">
-          <Plus className="w-4 h-4" /> Add Product
-        </Link>
-      </div>
+      <AdminPageHeader
+        title="Products"
+        subtitle={isLoading ? undefined : `${count} product${count !== 1 ? "s" : ""}`}
+        action={
+          <Link href="/admin/products/new" className="btn-primary flex items-center gap-2 text-sm">
+            <Plus className="w-4 h-4" /> Add Product
+          </Link>
+        }
+      />
 
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-        <div className="p-4 border-b border-gray-100">
-          <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-3 sm:items-center">
-            <div className="relative flex-1 min-w-0">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search products or SKU..."
-                className="input-field pl-9 text-sm w-full"
-              />
-            </div>
-            <CategoryFilterSelect
-              categories={categoryRows}
-              value={urlCategory}
-              onChange={(slug) => pushListParams({ category: slug })}
-              className="input-field text-sm min-w-[200px] w-full sm:w-auto"
-            />
-            <button type="submit" className="btn-primary text-sm px-4 py-2 whitespace-nowrap">
-              Search
-            </button>
-          </form>
-        </div>
+      <AdminToolbar>
+        <AdminSearchInput
+          value={searchInput}
+          onChange={setSearchInput}
+          label="Search products"
+          placeholder="Search products or SKU…"
+          className="flex-1 lg:max-w-sm"
+        />
+        <FilterDropdown
+          label="All categories"
+          allLabel="All categories"
+          value={urlCategory}
+          onChange={(slug) => pushListParams({ category: slug })}
+          options={categoryRows.map((c: { slug: string; name: string }) => ({
+            value: c.slug,
+            label: c.name,
+          }))}
+          className="lg:ml-auto lg:w-52"
+        />
+      </AdminToolbar>
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50">

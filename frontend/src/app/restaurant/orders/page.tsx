@@ -11,6 +11,7 @@ import {
     getStatusColor,
     orderStatusLabel,
 } from "@/lib/utils";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 /**
  * Restaurant order history.
@@ -20,15 +21,18 @@ import {
  * also list their grocery orders.
  */
 export default function RestaurantOrdersPage() {
+    const { ready } = useRequireAuth();
+
     const { data, isLoading } = useQuery({
         queryKey: ["orders", "restaurant"],
         queryFn: () =>
             api
                 .get("/orders/", { params: { channel: "restaurant" } })
                 .then((r) => r.data),
+        enabled: ready,
     });
 
-    if (isLoading) {
+    if (!ready || isLoading) {
         return (
             <div className="container-xl px-4 py-6 md:py-8 space-y-4">
                 {[1, 2, 3].map((i) => (

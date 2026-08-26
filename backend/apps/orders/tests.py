@@ -9,10 +9,13 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.test import TestCase
+from django.utils import timezone
+from rest_framework.test import APITestCase
 
 from apps.cart.models import Cart, CartItem
 from apps.orders.models import Order, OrderItem, OrderStatusHistory
 from apps.orders.services import (
+    abandon_unpaid_pending_checkouts,
     allowed_next_statuses,
     create_order_from_cart,
     update_order_status,
@@ -280,6 +283,127 @@ class ChannelIsolationTests(TestCase):
             )
 
 
+class AbandonUnpaidCheckoutTests(TestCase):
+    """Abandoning stale drafts must not reach across the two businesses.
+
+    A customer's account spans both storefronts, so a restaurant checkout used
+    to delete the grocery order the same customer was still paying for on
+    Stripe -- expiring its session and silently restoring its stock.
+    """
+
+    def setUp(self):
+        self.user = make_user()
+
+    def _draft(self, channel):
+        return Order.objects.create(
+            user=self.user, channel=channel, status="pending", payment_status="unpaid"
+        )
+
+    def test_abandoning_one_channel_leaves_the_other_draft_alone(self):
+        grocery = self._draft("grocery")
+        restaurant = self._draft("restaurant")
+
+        abandon_unpaid_pending_checkouts(self.user, "restaurant")
+
+        self.assertTrue(Order.objects.filter(pk=grocery.pk).exists())
+        self.assertFalse(Order.objects.filter(pk=restaurant.pk).exists())
+
+    def test_it_still_clears_its_own_channel(self):
+        grocery = self._draft("grocery")
+
+        abandon_unpaid_pending_checkouts(self.user, "grocery")
+
+        self.assertFalse(Order.objects.filter(pk=grocery.pk).exists())
+
+    def test_a_paid_order_is_never_abandoned(self):
+        paid = Order.objects.create(
+            user=self.user, channel="grocery", status="confirmed", payment_status="paid"
+        )
+
+        abandon_unpaid_pending_checkouts(self.user, "grocery")
+
+        self.assertTrue(Order.objects.filter(pk=paid.pk).exists())
+
+
+class AdminStatsChannelFilterTests(APITestCase):
+    """One Order table serves both businesses, so every admin figure has to be
+    filterable by channel -- otherwise the dashboard reports the grocery shop
+    and the restaurant added together, and the top-sellers table ranks dishes
+    against groceries."""
+
+    def setUp(self):
+        self.client.force_authenticate(user=make_admin())
+
+    def _delivered_order(self, channel, total, product_name):
+        order = Order.objects.create(
+            user=make_user(),
+            channel=channel,
+            status="delivered",
+            payment_status="paid",
+            total_amount=Decimal(total),
+            subtotal=Decimal(total),
+        )
+        OrderItem.objects.create(
+            order=order,
+            product_name=product_name,
+            unit_price=Decimal(total),
+            quantity=1,
+        )
+        return order
+
+    def _seed(self):
+        self._delivered_order("grocery", "10.00", "Barramundi fillet")
+        self._delivered_order("restaurant", "25.00", "Beef rendang")
+
+    def _get(self, path, channel=None):
+        url = path if channel is None else f"{path}&channel={channel}"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200, response.content)
+        return response.json()
+
+    def test_stats_default_to_both_businesses(self):
+        self._seed()
+
+        body = self._get("/api/v1/orders/admin/stats/?days=7")
+
+        self.assertEqual(body["orders_count"], 2)
+        self.assertAlmostEqual(body["revenue"], 35.0)
+        self.assertEqual(body["channel"], "all")
+
+    def test_stats_can_be_scoped_to_one_business(self):
+        self._seed()
+
+        body = self._get("/api/v1/orders/admin/stats/?days=7", "restaurant")
+
+        self.assertEqual(body["orders_count"], 1)
+        self.assertAlmostEqual(body["revenue"], 25.0)
+        self.assertEqual(body["channel"], "restaurant")
+
+    def test_an_unknown_channel_falls_back_to_both(self):
+        self._seed()
+
+        body = self._get("/api/v1/orders/admin/stats/?days=7", "dine-in")
+
+        self.assertEqual(body["orders_count"], 2)
+        self.assertEqual(body["channel"], "all")
+
+    def test_revenue_series_is_scoped_too(self):
+        self._seed()
+
+        rows = self._get("/api/v1/orders/admin/revenue/?days=7", "grocery")
+
+        self.assertAlmostEqual(sum(r["revenue"] for r in rows), 10.0)
+
+    def test_top_sellers_do_not_mix_dishes_with_groceries(self):
+        self._seed()
+
+        both = self._get("/api/v1/orders/admin/top-products/?days=7")
+        restaurant = self._get("/api/v1/orders/admin/top-products/?days=7", "restaurant")
+
+        self.assertEqual(len(both), 2)
+        self.assertEqual([r["name"] for r in restaurant], ["Beef rendang"])
+
+
 class OrderStatusTransitionTests(TestCase):
     """The status graph guards the delivery and pickup flows separately."""
 
@@ -338,3 +462,84 @@ class OrderStatusTransitionTests(TestCase):
         self.assertEqual(history.from_status, "pending")
         self.assertEqual(history.changed_by, self.admin)
         self.assertEqual(history.note, "Customer called")
+
+
+class AdminOrderSearchTests(APITestCase):
+    """What staff actually type into the order queue's search box.
+
+    The queue previously matched order number and customer email only, so a
+    search for a customer's name, a status, a fulfilment type or the date shown
+    in the table returned an empty table — which reads as a broken search
+    rather than as a search that found nothing.
+    """
+
+    def setUp(self):
+        self.admin = make_admin()
+        self.client.force_authenticate(self.admin)
+
+        self.grace = make_user(email="grace@example.com", first_name="Grace", last_name="Ogu")
+        self.sam = make_user(email="sam@example.com", first_name="Sam", last_name="Hale")
+
+        self.grace_order = Order.objects.create(
+            user=self.grace, channel="grocery", order_type="pickup",
+            status="pending", payment_status="unpaid", total_amount=Decimal("33.00"),
+        )
+        self.sam_order = Order.objects.create(
+            user=self.sam, channel="restaurant", order_type="delivery",
+            status="out_for_delivery", payment_status="paid", total_amount=Decimal("75.00"),
+        )
+
+    def _search(self, term):
+        res = self.client.get("/api/v1/orders/admin/orders/", {"search": term})
+        self.assertEqual(res.status_code, 200)
+        return {r["order_number"] for r in res.data["results"]}
+
+    def test_order_number_with_and_without_the_displayed_hash(self):
+        number = self.grace_order.order_number
+        self.assertEqual(self._search(number), {number})
+        self.assertEqual(self._search(f"#{number}"), {number})
+
+    def test_search_by_customer_name(self):
+        self.assertEqual(self._search("Grace"), {self.grace_order.order_number})
+        self.assertEqual(self._search("Ogu"), {self.grace_order.order_number})
+
+    def test_full_name_needs_both_halves_to_match(self):
+        """Every word narrows: "Grace Ogu" spans two fields, and "Grace Hale"
+        is nobody, so it must return nothing rather than everyone called
+        either."""
+        self.assertEqual(self._search("Grace Ogu"), {self.grace_order.order_number})
+        self.assertEqual(self._search("Grace Hale"), set())
+
+    def test_search_by_email(self):
+        self.assertEqual(self._search("sam@example.com"), {self.sam_order.order_number})
+
+    def test_search_by_status_in_the_form_the_table_displays_it(self):
+        self.assertEqual(self._search("pending"), {self.grace_order.order_number})
+        self.assertEqual(self._search("out_for_delivery"), {self.sam_order.order_number})
+        self.assertEqual(self._search("Out for Delivery"), {self.sam_order.order_number})
+
+    def test_search_by_fulfilment_type_and_payment_state(self):
+        self.assertEqual(self._search("pickup"), {self.grace_order.order_number})
+        self.assertEqual(self._search("paid"), {self.sam_order.order_number})
+
+    def test_search_by_channel(self):
+        self.assertEqual(self._search("restaurant"), {self.sam_order.order_number})
+
+    def test_terms_combine_to_narrow(self):
+        self.assertEqual(self._search("grace pending"), {self.grace_order.order_number})
+        self.assertEqual(self._search("grace paid"), set())
+
+    def test_search_by_the_date_the_table_prints(self):
+        """`formatDate` renders en-AU short month — "26 Aug 2026" — so that is
+        the string most likely to be pasted back in."""
+        day = timezone.localtime(self.grace_order.created_at).date()
+        both = {self.grace_order.order_number, self.sam_order.order_number}
+        self.assertEqual(self._search(day.strftime("%d %b %Y")), both)
+        self.assertEqual(self._search(day.strftime("%Y-%m-%d")), both)
+        self.assertEqual(self._search(day.strftime("%d/%m/%Y")), both)
+
+    def test_a_date_with_no_orders_returns_nothing(self):
+        self.assertEqual(self._search("01 Jan 1999"), set())
+
+    def test_unrelated_term_matches_nothing(self):
+        self.assertEqual(self._search("zzqq"), set())

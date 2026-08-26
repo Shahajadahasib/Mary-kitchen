@@ -19,13 +19,19 @@ from .models import Order, OrderItem, OrderStatusHistory
 logger = logging.getLogger(__name__)
 
 
-def abandon_unpaid_pending_checkouts(user) -> None:
+def abandon_unpaid_pending_checkouts(user, channel: str = "grocery") -> None:
     """
     Remove stale unpaid checkout orders so the user can place a new one from the same cart
     without double stock deductions. Expires Stripe Checkout / cancels PaymentIntent when possible.
+
+    Scoped to one ``channel``. A customer's account spans both storefronts, so
+    an unscoped sweep would let a restaurant checkout expire the Stripe session
+    of a grocery order the customer is still paying for (and silently restore
+    its stock) — the two businesses must never abandon each other's drafts.
     """
     qs = Order.objects.filter(
         user=user,
+        channel=channel,
         status="pending",
         payment_status__in=["unpaid", "failed"],
     )
@@ -173,7 +179,17 @@ def create_order_from_cart(
         unit_price = variant.price if variant else product.base_price
         oos = False
 
-        stock_obj = variant if variant else product
+        # Re-read the stock row under a row lock before checking it. The
+        # prefetched copy above was loaded before this transaction began, so
+        # two customers checking out the last unit at the same time would both
+        # see it available and both decrement — overselling stock that a
+        # grocery order cannot fulfil. SELECT ... FOR UPDATE makes the second
+        # checkout wait here and then read the already-decremented value.
+        if variant:
+            stock_obj = ProductVariant.objects.select_for_update().get(pk=variant.pk)
+        else:
+            stock_obj = Product.objects.select_for_update().get(pk=product.pk)
+
         if stock_obj.stock_quantity >= item.quantity:
             stock_obj.stock_quantity -= item.quantity
             stock_obj.save(update_fields=["stock_quantity"])
@@ -215,7 +231,14 @@ def create_order_from_cart(
 
     if has_oos:
         from apps.notifications.tasks import notify_admin_out_of_stock
-        notify_admin_out_of_stock.delay(str(order.id))
+
+        # Queued on commit, not here: this runs inside the checkout
+        # transaction, so a worker that picks the task up first would look for
+        # an order the database has not committed yet and fail with
+        # DoesNotExist. Development never sees it (CELERY_TASK_ALWAYS_EAGER
+        # runs the task inline); production has a real broker and does.
+        order_id_str = str(order.id)
+        transaction.on_commit(lambda: notify_admin_out_of_stock.delay(order_id_str))
 
     return order
 

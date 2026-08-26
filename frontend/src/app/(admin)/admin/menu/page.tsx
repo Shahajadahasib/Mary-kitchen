@@ -1,15 +1,17 @@
 "use client";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { AdminSearchInput, AdminToolbar } from "@/components/admin/AdminToolbar";
+import FilterDropdown from "@/components/ui/FilterDropdown";
 
+import MediaImage from "@/components/ui/MediaImage";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Image from "next/image";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import {
     ChevronDown,
     Pencil,
     Plus,
-    Search,
     SlidersHorizontal,
     Trash2,
     UtensilsCrossed,
@@ -105,57 +107,48 @@ export default function AdminMenuItemsPage() {
 
     return (
         <div>
-            <div className="mb-6 flex items-center justify-between gap-3">
-                <div>
-                    <h2 className="text-xl font-bold text-gray-900">Menu</h2>
-                    <p className="mt-0.5 text-sm text-gray-400">
-                        Dishes on the restaurant menu.
-                    </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                    <Link
-                        href="/admin/menu/categories"
-                        className="btn-secondary flex items-center gap-2 text-sm"
-                    >
-                        <SlidersHorizontal className="h-4 w-4" />
-                        <span className="hidden sm:inline">Categories</span>
-                    </Link>
-                    <Link
-                        href="/admin/menu/items/new"
-                        className="btn-primary flex items-center gap-2 text-sm"
-                    >
-                        <Plus className="h-4 w-4" /> New dish
-                    </Link>
-                </div>
-            </div>
+            <AdminPageHeader
+                title="Menu"
+                subtitle="Dishes on the restaurant menu."
+                action={
+                    <>
+                        <Link
+                            href="/admin/menu/categories"
+                            className="btn-secondary flex items-center gap-2 text-sm"
+                        >
+                            <SlidersHorizontal className="h-4 w-4" />
+                            <span className="hidden sm:inline">Categories</span>
+                        </Link>
+                        <Link
+                            href="/admin/menu/items/new"
+                            className="btn-primary flex items-center gap-2 text-sm"
+                        >
+                            <Plus className="h-4 w-4" /> New dish
+                        </Link>
+                    </>
+                }
+            />
 
-            {/* Filters */}
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search dishes…"
-                        className="input-field pl-9 text-sm"
-                    />
-                </div>
-                <div className="relative">
-                    <select
-                        value={categoryFilter}
-                        onChange={(e) => setCategoryFilter(e.target.value)}
-                        className="input-field w-auto appearance-none pr-9 text-sm"
-                    >
-                        <option value="">All categories</option>
-                        {(categories ?? []).map((c) => (
-                            <option key={c.id} value={c.slug}>
-                                {c.name}
-                            </option>
-                        ))}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                </div>
-            </div>
+            <AdminToolbar>
+                <AdminSearchInput
+                    value={search}
+                    onChange={setSearch}
+                    label="Search dishes"
+                    placeholder="Search dishes…"
+                    className="flex-1 lg:max-w-sm"
+                />
+                <FilterDropdown
+                    label="All categories"
+                    allLabel="All categories"
+                    value={categoryFilter}
+                    onChange={setCategoryFilter}
+                    options={(categories ?? []).map((c) => ({
+                        value: c.slug,
+                        label: c.name,
+                    }))}
+                    className="lg:ml-auto lg:w-52"
+                />
+            </AdminToolbar>
 
             {isLoading ? (
                 <div className="space-y-3">
@@ -216,7 +209,7 @@ export default function AdminMenuItemsPage() {
                                                 <div className="flex items-center gap-3">
                                                     <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
                                                         {img ? (
-                                                            <Image
+                                                            <MediaImage
                                                                 src={img}
                                                                 alt={item.name}
                                                                 fill

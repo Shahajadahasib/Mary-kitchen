@@ -1,5 +1,8 @@
 "use client";
 
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { AdminSearchInput, AdminToolbar } from "@/components/admin/AdminToolbar";
+import FilterDropdown from "@/components/ui/FilterDropdown";
 import api from "@/lib/api";
 import {
     formatCurrency,
@@ -97,8 +100,26 @@ function AdminOrdersPageInner() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const qc = useQueryClient();
+    // `searchInput` is what the field shows; `search` is what the query uses.
+    // They are separated by a debounce because the raw value used to feed the
+    // react-query key directly, firing a request at the admin orders endpoint
+    // on every keystroke.
+    const [searchInput, setSearchInput] = useState("");
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
+
+    useEffect(() => {
+        // The table prints order numbers as "#MK-202608-ZEANGEQG", so the
+        // natural thing to do is select one and paste it here — and that "#"
+        // is presentation, not part of the stored `order_number`. Left in, it
+        // matched nothing and the table went blank, which reads as a broken
+        // search rather than as a search for a string that does not exist.
+        const t = window.setTimeout(
+            () => setSearch(searchInput.trim().replace(/^#+/, "")),
+            300,
+        );
+        return () => window.clearTimeout(t);
+    }, [searchInput]);
     // "" = both businesses. AdminOrderListView already filters on channel.
     const [channelFilter, setChannelFilter] = useState("");
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -286,28 +307,21 @@ function AdminOrdersPageInner() {
 
     return (
         <div>
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h2 className="text-xl font-bold text-gray-900">
-                        Order Management
-                    </h2>
-                    {!isLoading && (
-                        <p className="text-sm text-gray-400 mt-0.5">
-                            {total} order{total !== 1 ? "s" : ""}
-                        </p>
-                    )}
-                </div>
-            </div>
+            <AdminPageHeader
+                title="Order Management"
+                subtitle={
+                    isLoading ? undefined : `${total} order${total !== 1 ? "s" : ""}`
+                }
+            />
 
-            {/* Channel tabs — one storefront at a time, or both together.
-                Staff fulfilling grocery deliveries and staff plating restaurant
-                takeaway are working different queues. */}
-            <div className="px-3 sm:px-4 pt-3">
+            {/* Business tabs, search, status. Staff fulfilling grocery
+                deliveries and staff plating restaurant takeaway are working
+                different queues. */}
+            <AdminToolbar>
                 <div
                     role="tablist"
                     aria-label="Filter orders by business"
-                    className="inline-flex rounded-lg bg-gray-100 p-1"
+                    className="inline-flex shrink-0 rounded-full bg-gray-100 p-1"
                 >
                     {CHANNEL_TABS.map((tab) => {
                         const active = channelFilter === tab.value;
@@ -318,10 +332,10 @@ function AdminOrdersPageInner() {
                                 type="button"
                                 aria-selected={active}
                                 onClick={() => setChannelFilter(tab.value)}
-                                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                                className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
                                     active
-                                        ? "bg-white text-gray-900 shadow-sm"
-                                        : "text-gray-500 hover:text-gray-700"
+                                        ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                                        : "text-gray-500 hover:text-gray-800"
                                 }`}
                             >
                                 {tab.label}
@@ -329,37 +343,27 @@ function AdminOrdersPageInner() {
                         );
                     })}
                 </div>
-            </div>
 
-            {/* Filters */}
-            <div className="p-3 sm:p-4 flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                    <div className="relative flex-1 min-w-[220px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search order # or customer email…"
-                            className="input-field pl-9 text-sm"
-                        />
-                    </div>
-                    <div className="relative">
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="input-field text-sm w-auto pr-9 appearance-none"
-                        >
-                            <option value="">All Statuses</option>
-                            {ALL_STATUSES.map((s) => (
-                                <option key={s} value={s}>
-                                    {orderStatusLabel(s)}
-                                </option>
-                            ))}
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
-                </div>
-            </div>
+                <AdminSearchInput
+                    value={searchInput}
+                    onChange={setSearchInput}
+                    label="Search orders"
+                    placeholder="Order #, customer, status, type, date…"
+                    className="flex-1 lg:max-w-sm"
+                />
+
+                <FilterDropdown
+                    label="All statuses"
+                    allLabel="All statuses"
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    options={ALL_STATUSES.map((st) => ({
+                        value: st,
+                        label: orderStatusLabel(st),
+                    }))}
+                    className="lg:ml-auto lg:w-52"
+                />
+            </AdminToolbar>
 
             {/* Table */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">

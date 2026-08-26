@@ -1,8 +1,7 @@
 "use client";
 
-import { authHref } from "@/lib/authRedirect";
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { Bell } from "lucide-react";
@@ -24,10 +23,7 @@ export default function NotificationsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { isAuthenticated, hasHydrated } = useAuthStore();
-
-  useEffect(() => {
-    if (hasHydrated && !isAuthenticated) router.replace(authHref("/login", "/shop/notifications"));
-  }, [hasHydrated, isAuthenticated, router]);
+  useRequireAuth();
 
   const { data, isLoading } = useQuery({
     queryKey: ["notifications"],

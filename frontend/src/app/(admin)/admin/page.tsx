@@ -1,4 +1,5 @@
 "use client";
+import FilterDropdown from "@/components/ui/FilterDropdown";
 import api from "@/lib/api";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -73,8 +74,24 @@ const DAY_OPTIONS = [
     { label: "Last 90 days", value: 90 },
 ];
 
+// Same three tabs as the orders queue, for the same reason: one Order table
+// serves both businesses, so every figure below is the two added together
+// unless a channel is chosen.
+const CHANNEL_TABS = [
+    { value: "", label: "Both" },
+    { value: "grocery", label: "Grocery" },
+    { value: "restaurant", label: "Restaurant" },
+] as const;
+
 export default function AdminDashboardPage() {
     const [days, setDays] = useState(7);
+    /** "" = both businesses, which is what the endpoints default to. */
+    const [channel, setChannel] = useState("");
+
+    /** `?days=…` plus `&channel=…` when one storefront is selected. */
+    const statsQuery = `days=${days}${channel ? `&channel=${channel}` : ""}`;
+    const channelLabel =
+        CHANNEL_TABS.find((t) => t.value === channel)?.label ?? "Both";
 
     const { data: orders } = useQuery({
         queryKey: ["admin-orders"],
@@ -84,24 +101,24 @@ export default function AdminDashboardPage() {
     });
 
     const { data: stats } = useQuery<AdminStats>({
-        queryKey: ["admin-stats", days],
+        queryKey: ["admin-stats", days, channel],
         queryFn: () =>
-            api.get(`/orders/admin/stats/?days=${days}`).then((r) => r.data),
+            api.get(`/orders/admin/stats/?${statsQuery}`).then((r) => r.data),
         refetchInterval: 60_000,
     });
 
     const { data: revenueData } = useQuery<RevenuePoint[]>({
-        queryKey: ["admin-revenue", days],
+        queryKey: ["admin-revenue", days, channel],
         queryFn: () =>
-            api.get(`/orders/admin/revenue/?days=${days}`).then((r) => r.data),
+            api.get(`/orders/admin/revenue/?${statsQuery}`).then((r) => r.data),
         refetchInterval: 60_000,
     });
 
     const { data: topProducts } = useQuery<TopProduct[]>({
-        queryKey: ["top-products", days],
+        queryKey: ["top-products", days, channel],
         queryFn: () =>
             api
-                .get(`/orders/admin/top-products/?days=${days}`)
+                .get(`/orders/admin/top-products/?${statsQuery}`)
                 .then((r) => r.data),
         refetchInterval: 60_000,
     });
@@ -124,10 +141,10 @@ export default function AdminDashboardPage() {
     });
 
     const { data: refundStats } = useQuery<RefundStats>({
-        queryKey: ["admin-refund-stats", days],
+        queryKey: ["admin-refund-stats", days, channel],
         queryFn: () =>
             api
-                .get(`/orders/admin/refund-stats/?days=${days}`)
+                .get(`/orders/admin/refund-stats/?${statsQuery}`)
                 .then((r) => r.data),
         refetchInterval: 60_000,
     });
@@ -179,7 +196,7 @@ export default function AdminDashboardPage() {
             value: conversion
                 ? `${conversion.conversion_rate.toFixed(1)}%`
                 : "—",
-            sub: `Paid orders / visits · ${periodLabel}`,
+            sub: `Paid orders / visits · both storefronts · ${periodLabel}`,
             icon: Percent,
             color: "bg-orange-500",
         },
@@ -187,20 +204,48 @@ export default function AdminDashboardPage() {
 
     return (
         <div>
-            {/* Header row with period picker */}
+            {/* Header row with business and period pickers */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                 <h2 className="text-xl font-bold text-gray-900">Overview</h2>
-                <select
-                    value={days}
-                    onChange={(e) => setDays(Number(e.target.value))}
-                    className="input-field text-sm w-auto pr-8"
-                >
-                    {DAY_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>
-                            {o.label}
-                        </option>
-                    ))}
-                </select>
+                <div className="flex flex-wrap items-center gap-3">
+                    <div
+                        role="tablist"
+                        aria-label="Filter figures by business"
+                        className="inline-flex rounded-full bg-gray-100 p-1"
+                    >
+                        {CHANNEL_TABS.map((tab) => {
+                            const active = channel === tab.value;
+                            return (
+                                <button
+                                    key={tab.value}
+                                    role="tab"
+                                    type="button"
+                                    aria-selected={active}
+                                    onClick={() => setChannel(tab.value)}
+                                    className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                                        active
+                                            ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                                            : "text-gray-500 hover:text-gray-800"
+                                    }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <FilterDropdown
+                        label="Period"
+                        allLabel={DAY_OPTIONS[0].label}
+                        clearable={false}
+                        value={String(days)}
+                        onChange={(v) => setDays(Number(v || DAY_OPTIONS[0].value))}
+                        options={DAY_OPTIONS.map((o) => ({
+                            value: String(o.value),
+                            label: o.label,
+                        }))}
+                        className="w-44"
+                    />
+                </div>
             </div>
 
             {/* Stats cards */}
@@ -234,7 +279,7 @@ export default function AdminDashboardPage() {
 
             {/* Revenue Chart + Stock Alerts */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 mb-4 sm:mb-6">
-                <div className="lg:col-span-3 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                     <h3 className="font-semibold text-gray-900 mb-4">
                         Revenue — {periodLabel}
                     </h3>
@@ -263,7 +308,7 @@ export default function AdminDashboardPage() {
                     </ResponsiveContainer>
                 </div>
 
-                <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                     <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 text-orange-500" />{" "}
                         Out-of-Stock Products
@@ -306,13 +351,16 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Top Products */}
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm mb-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6">
                 <div className="p-5 border-b border-gray-100">
                     <h3 className="font-semibold text-gray-900">
                         Top Products
                     </h3>
                     <p className="text-sm text-gray-500 mt-0.5">
-                        Delivered orders · {periodLabel}
+                        Delivered orders · {channelLabel === "Both"
+                            ? "both storefronts"
+                            : channelLabel}{" "}
+                        · {periodLabel}
                     </p>
                 </div>
                 <div className="overflow-x-auto">
@@ -370,7 +418,7 @@ export default function AdminDashboardPage() {
             {/* Refund Analytics */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
                 {/* Refund summary cards */}
-                <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                     <div className="flex items-center gap-2 mb-5">
                         <RotateCcw className="w-4 h-4 text-red-500" />
                         <h3 className="font-semibold text-gray-900">
@@ -416,7 +464,7 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* Top refunded products */}
-                <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
                     <div className="p-5 border-b border-gray-100 flex items-center gap-2">
                         <Package className="w-4 h-4 text-red-400" />
                         <h3 className="font-semibold text-gray-900">
@@ -489,7 +537,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Recent Orders */}
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
                 <div className="p-5 border-b border-gray-100 flex justify-between items-center">
                     <h3 className="font-semibold text-gray-900">
                         Recent Orders

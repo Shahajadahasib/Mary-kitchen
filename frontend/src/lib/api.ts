@@ -3,7 +3,7 @@
  */
 import axios, { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
 import Cookies from "js-cookie";
-import { STOREFRONT_ROOTS, storefrontRootFor } from "@/lib/authRedirect";
+import { STOREFRONT_ROOTS, authHref, storefrontRootFor } from "@/lib/authRedirect";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
@@ -39,8 +39,13 @@ const handleSessionExpired = () => {
   if (isProtected) {
     // Dispatch event so UI can show "session expired" toast
     window.dispatchEvent(new CustomEvent("session-expired"));
-    // Send them back to the storefront they were in, not the other one's home.
-    const destination = storefrontRootFor(currentPath);
+    // Storefront routes bounce to that storefront's home (the toast says so).
+    // Admin has no such home — sending an admin to the customer hub was why an
+    // expired session on /admin ended up on "/". Send them to sign in again,
+    // remembering where they were.
+    const destination = currentPath.startsWith("/admin")
+      ? authHref("/login", currentPath)
+      : storefrontRootFor(currentPath);
     setTimeout(() => {
       window.location.href = destination;
     }, 1500);

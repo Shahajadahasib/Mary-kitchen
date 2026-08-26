@@ -1,4 +1,5 @@
 "use client";
+import MediaImage from "@/components/ui/MediaImage";
 import { authHref } from "@/lib/authRedirect";
 import api from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
@@ -14,7 +15,6 @@ import {
     Trash2,
     XCircle,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -180,7 +180,7 @@ export default function CartPage() {
                                     className={`relative w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 ${unavailable ? "grayscale" : ""}`}
                                 >
                                     {item.product_detail?.primary_image ? (
-                                        <Image
+                                        <MediaImage
                                             src={
                                                 item.product_detail
                                                     .primary_image

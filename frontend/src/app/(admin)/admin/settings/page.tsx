@@ -1,7 +1,7 @@
 "use client";
+import MediaImage from "@/components/ui/MediaImage";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import Image from "next/image";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 import { Camera, Globe, MapPin, Phone, Mail, Clock, Facebook, Instagram, Store, X } from "lucide-react";
@@ -367,7 +367,7 @@ export default function AdminSettingsPage() {
                   onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
                 >
                   {logoPreview ? (
-                    <Image
+                    <MediaImage
                       src={logoPreview}
                       alt="Store logo"
                       fill

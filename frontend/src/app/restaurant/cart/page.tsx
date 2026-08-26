@@ -1,5 +1,6 @@
 "use client";
 
+import MediaImage from "@/components/ui/MediaImage";
 import {
     AlertTriangle,
     ArrowRight,
@@ -11,7 +12,6 @@ import {
     UtensilsCrossed,
     XCircle,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -195,7 +195,7 @@ export default function RestaurantCartPage() {
                                     }`}
                                 >
                                     {image ? (
-                                        <Image
+                                        <MediaImage
                                             src={image}
                                             alt={dish?.name ?? "Dish"}
                                             fill

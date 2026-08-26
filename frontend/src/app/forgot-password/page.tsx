@@ -1,17 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { Eye, EyeOff, Loader2, ShoppingBag } from "lucide-react";
 import api from "@/lib/api";
+import { authHref, resolveNextPath } from "@/lib/authRedirect";
 import { getApiErrorMessage } from "@/lib/getApiErrorMessage";
 
 type Step = "request" | "confirm";
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Carry the caller's destination through the reset, so someone who started
+  // at checkout is sent back there after signing in with the new password.
+  const nextPath = resolveNextPath(searchParams);
   const [step, setStep] = useState<Step>("request");
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -62,7 +67,7 @@ export default function ForgotPasswordPage() {
         new_password_confirm: newPasswordConfirm,
       });
       toast.success("Password reset successful. Please sign in.");
-      router.push("/login");
+      router.push(authHref("/login", nextPath));
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, "Failed to reset password."));
     } finally {
@@ -196,12 +201,21 @@ export default function ForgotPasswordPage() {
 
           <p className="text-center text-sm text-gray-500 mt-5">
             Remember your password?{" "}
-            <Link href="/login" className="text-primary-700 font-medium hover:underline">
+            <Link href={authHref("/login", nextPath)} className="text-primary-700 font-medium hover:underline">
               Sign in
             </Link>
           </p>
         </div>
       </div>
     </div>
+  );
+}
+
+// useSearchParams() needs a Suspense boundary for static rendering.
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ForgotPasswordForm />
+    </Suspense>
   );
 }

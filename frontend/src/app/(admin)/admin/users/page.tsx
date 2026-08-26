@@ -1,9 +1,11 @@
 "use client";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { AdminSearchInput, AdminToolbar } from "@/components/admin/AdminToolbar";
 import api from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, Shield, ShieldCheck, Trash2, X } from "lucide-react";
+import { Shield, ShieldCheck, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 
@@ -81,22 +83,19 @@ export default function AdminUsersPage() {
 
     return (
         <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">
-                User Management
-            </h2>
+            <AdminPageHeader title="User Management" />
 
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-                <div className="p-4 border-b border-gray-100">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search by email or name..."
-                            className="input-field pl-9 text-sm"
-                        />
-                    </div>
-                </div>
+            <AdminToolbar>
+                <AdminSearchInput
+                    value={search}
+                    onChange={setSearch}
+                    label="Search users"
+                    placeholder="Search by email or name…"
+                    className="flex-1 lg:max-w-sm"
+                />
+            </AdminToolbar>
+
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">

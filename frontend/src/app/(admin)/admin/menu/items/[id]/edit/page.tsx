@@ -1,8 +1,8 @@
 "use client";
 
+import MediaImage from "@/components/ui/MediaImage";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -384,7 +384,7 @@ export default function AdminEditMenuItemPage() {
                                     className="group relative aspect-square overflow-hidden rounded-xl bg-gray-100"
                                 >
                                     {src ? (
-                                        <Image
+                                        <MediaImage
                                             src={src}
                                             alt={img.alt_text || item.name}
                                             fill

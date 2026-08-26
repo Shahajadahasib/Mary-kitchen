@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import MediaImage from "@/components/ui/MediaImage";
 import Link from "next/link";
 import { Clock, Plus, UtensilsCrossed } from "lucide-react";
 import { useState } from "react";
@@ -54,7 +54,7 @@ export default function MenuItemCard({ item }: { item: MenuItemListEntry }) {
         >
             <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
                 {image ? (
-                    <Image
+                    <MediaImage
                         src={image}
                         alt={item.name}
                         fill

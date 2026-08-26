@@ -1,13 +1,13 @@
 ---
 name: restaurant-expansion-roadmap
-description: Execution plan for the restaurant expansion. Phases 1-5 have shipped (backend domain, unified pipeline, hub page + route move, restaurant storefront, admin menu screens). Only Phase 6 (polish, unscoped) remains — this file is the resume point.
+description: Execution plan for the restaurant expansion. All six phases have shipped (backend domain, unified pipeline, hub page + route move, restaurant storefront, admin menu screens, SEO/chrome polish and channel-split analytics). This file is the resume point and records the invariants and the work deliberately left out of v1.
 metadata:
   type: project
 ---
 
-# Restaurant expansion — roadmap (only Phase 6 remains)
+# Restaurant expansion — roadmap (all phases shipped)
 
-**Read this first if you are resuming this work in a new session.** Phases 1-4 are done and on
+**Read this first if you are resuming this work in a new session.** All six phases are done, on
 `main`'s history via `feature/restaurant-hub-phase3`:
 
 - **Phase 1** — the `apps.menu` backend domain.
@@ -22,8 +22,13 @@ metadata:
   on-menu/86 toggles, dish create, dish editor with photos and modifier groups) and All /
   Grocery / Restaurant tabs on the admin orders queue.
 
+- **Phase 6** — shared channel-aware storefront chrome, the SEO pass, and channel-split admin
+  analytics. Scoped in `memory/phase6_plan.md`; steps 6.1–6.5 shipped together, step 6.6 shipped
+  afterwards as part of a full-project audit.
+
 The migrations (`menu/0001_initial`, `cart/0003_...`, `orders/0008_...`) have been applied to the
-development database. **Only Phase 6 below remains, and it is not scoped yet.**
+development database. **The expansion is feature-complete for v1**; what remains is listed under
+"Deliberately out of v1" below.
 
 ## Things later phases must not undo
 
@@ -36,7 +41,17 @@ development database. **Only Phase 6 below remains, and it is not scoped yet.**
 - `store/cartStore.ts` exposes `useGroceryCart` and `useRestaurantCart` as separate instances.
   Keep the channel explicit at every call site; do not reintroduce an implicit "current cart".
 - `GET /api/v1/orders/` takes an optional `?channel=`. Both storefronts' order screens pass it;
-  omitting it returns every order across both businesses.
+  omitting it returns every order across both businesses. The grocery screen was found missing it
+  during the audit and now passes `channel=grocery`.
+- `orders.services.abandon_unpaid_pending_checkouts(user, channel)` **must** stay channel-scoped.
+  Unscoped, a restaurant checkout deletes the grocery draft order the same customer is still paying
+  for on Stripe — expiring the session and restoring the stock underneath them.
+- The four admin stats endpoints (`revenue`, `stats`, `top-products`, `refund-stats`) take an
+  optional `?channel=` that defaults to *both*. Keep the default: existing callers rely on the
+  combined figures.
+- Both `ShopShell` and `RestaurantShell` mount `VisitTracker`. The conversion metric divides paid
+  orders from both channels by that visit count, so dropping it from one storefront silently
+  inflates the rate.
 
 ## Locked decisions (do not re-litigate these)
 
@@ -69,9 +84,12 @@ frontend/src/hooks/useDeliveryFee.ts  — shared by both checkouts
 frontend/src/types/menu.ts     — menu domain types
 ```
 
-Note for Phase 6: the root `layout.tsx` still carries grocery-specific metadata and `GroceryStore`
-JSON-LD that now applies to the hub as well. The hub and the restaurant segment override title,
-description and canonical, but the structured data has not been split per storefront yet.
+Phase 6 has since split the structured data: the root `layout.tsx` now emits only `Organization`
+and `WebSite`, `shop/layout.tsx` carries the `GroceryStore` schema that used to be global, and
+`restaurant/layout.tsx` carries its own `Restaurant` schema. They are declared through
+`components/seo/JsonLd.tsx` rather than raw `dangerouslySetInnerHTML` blocks — keep it that way,
+and never put a business-specific schema back in the root layout, where a child segment cannot
+override it.
 
 ## Phase 5 — done
 
@@ -87,29 +105,37 @@ Two things to know before touching these:
 - `is_active` (permanently on the menu) and `is_available` (today's 86 list) are independent, and
   both are toggled inline from the dish list. Do not collapse them into one control.
 
-## Phase 6 — polish / not yet scoped
+## Phase 6 — done
 
-Not decided in detail yet — revisit with the project owner once Phases 3-5 are live:
+Scoped in `memory/phase6_plan.md`. Steps 6.1–6.5 (channel-aware `Footer`, reciprocal cross-links,
+per-route metadata and canonicals, per-storefront JSON-LD, dynamic sitemap, on-page hygiene) shipped
+first. Step 6.6 (channel-split admin analytics) shipped afterwards.
 
-- SEO metadata per storefront (currently `sitemap.ts`/`robots.ts` only know about one site).
-- Menu-item reviews (`apps.reviews` currently only targets `products.Product` — deliberately out
-  of scope for v1, see `project_features_batch2.md`).
-- Dine-in / table ordering (deliberately deferred, needs a fresh decision, not just an extension of
-  the current model).
-- Analytics split by channel in `apps.analytics`.
+## Deliberately out of v1
 
-## Risks & mitigations (for the phases that remain)
+Each of these needs a fresh product decision, not just an extension of what exists:
 
-- **Per-storefront SEO is unfinished, not merely absent.** The root `layout.tsx` still carries
-  grocery-specific metadata and `GroceryStore` JSON-LD that now also applies to the hub. The hub
-  and the restaurant segment override title/description/canonical, but the structured data has
-  not been split. This is the most concrete item in Phase 6.
+- **Menu-item reviews.** `reviews.Review.product` is a non-nullable FK to `products.Product`, with
+  `unique_together(user, product)` and a `save()` that calls `self.product.update_rating()`.
+  Supporting dishes needs a nullable FK, a reworked constraint, rating fields on `MenuItem` and a
+  data migration on a live table.
+- **Dine-in / table ordering.** Locked out of v1 (see "Locked decisions").
+- **Per-channel conversion rate.** `analytics.Visit` has no `channel` column, so the dashboard's
+  conversion tile is whole-site only and says so on the card. Splitting it means a migration on
+  `Visit` and passing the channel from each storefront's `VisitTracker`.
+- **A restaurant-side account surface.** The restaurant nav has no notifications bell and its footer
+  links "My Profile" at `/shop/profile`, so a restaurant-only customer is sent into grocery chrome to
+  manage their account. Either build `/restaurant/profile` + `/restaurant/notifications`, or move
+  account pages to a neutral top-level route both storefronts link to.
+
+## Risks & mitigations
+
 - **Deleting menu data is guarded server-side.** A category with dishes returns 400, and a dish on
   existing orders returns 409 (deactivate instead). The admin screens surface both messages —
   keep that if these screens are reworked.
 
 ## How to apply
 
-Phase 6 is not scoped — agree the list with the project owner before starting. Whatever it
-covers, re-read "Things later phases must not undo" above before changing anything in `cart`,
-`orders`, the URL builders, or the cart stores.
+Agree any further work with the project owner before starting — the items under "Deliberately out
+of v1" are decisions, not backlog. Whatever the work covers, re-read "Things later phases must not
+undo" above before changing anything in `cart`, `orders`, the URL builders, or the cart stores.

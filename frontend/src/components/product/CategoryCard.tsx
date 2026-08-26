@@ -1,6 +1,6 @@
+import MediaImage from "@/components/ui/MediaImage";
 import { absoluteMediaUrl } from "@/lib/media";
 import { Tag } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
 interface CategoryCardProps {
@@ -25,7 +25,7 @@ export default function CategoryCard({ category }: CategoryCardProps) {
             <div className="w-full aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-primary-100 to-primary-50 border border-primary-100 group-hover:shadow-md transition-shadow">
                 {src ? (
                     <div className="relative w-full h-full">
-                        <Image
+                        <MediaImage
                             src={src}
                             alt={category.name}
                             fill

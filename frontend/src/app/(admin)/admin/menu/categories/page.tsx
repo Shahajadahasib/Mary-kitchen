@@ -1,8 +1,9 @@
 "use client";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
+import MediaImage from "@/components/ui/MediaImage";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Image from "next/image";
 import toast from "react-hot-toast";
 import { Loader2, Pencil, Plus, Trash2, UtensilsCrossed, X } from "lucide-react";
 import ConfirmModal from "@/components/admin/ConfirmModal";
@@ -160,22 +161,18 @@ export default function AdminMenuCategoriesPage() {
 
     return (
         <div>
-            <div className="mb-6 flex items-center justify-between gap-3">
-                <div>
-                    <h2 className="text-xl font-bold text-gray-900">
-                        Menu Categories
-                    </h2>
-                    <p className="mt-0.5 text-sm text-gray-400">
-                        Sections of the restaurant menu, e.g. Starters, Mains.
-                    </p>
-                </div>
-                <button
-                    onClick={openCreate}
-                    className="btn-primary flex shrink-0 items-center gap-2 text-sm"
-                >
-                    <Plus className="h-4 w-4" /> New category
-                </button>
-            </div>
+            <AdminPageHeader
+                title="Menu Categories"
+                subtitle="Sections of the restaurant menu, e.g. Starters, Mains."
+                action={
+                    <button
+                        onClick={openCreate}
+                        className="btn-primary flex shrink-0 items-center gap-2 text-sm"
+                    >
+                        <Plus className="h-4 w-4" /> New category
+                    </button>
+                }
+            />
 
             {isLoading ? (
                 <div className="space-y-3">
@@ -230,7 +227,7 @@ export default function AdminMenuCategoriesPage() {
                                                 <div className="flex items-center gap-3">
                                                     <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
                                                         {img ? (
-                                                            <Image
+                                                            <MediaImage
                                                                 src={img}
                                                                 alt={cat.name}
                                                                 fill
@@ -394,7 +391,7 @@ export default function AdminMenuCategoriesPage() {
                                 <div className="flex items-center gap-3">
                                     <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-gray-100">
                                         {imagePreview ? (
-                                            <Image
+                                            <MediaImage
                                                 src={imagePreview}
                                                 alt=""
                                                 fill

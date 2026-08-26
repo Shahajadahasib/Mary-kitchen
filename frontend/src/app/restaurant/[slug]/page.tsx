@@ -1,5 +1,6 @@
 "use client";
 
+import MediaImage from "@/components/ui/MediaImage";
 import { useQuery } from "@tanstack/react-query";
 import {
     ChevronRight,
@@ -9,7 +10,6 @@ import {
     ShoppingBag,
     UtensilsCrossed,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -150,7 +150,7 @@ export default function MenuItemDetailPage() {
                 <div>
                     <div className="relative h-64 sm:h-80 md:aspect-square md:h-auto rounded-2xl overflow-hidden bg-gray-100 mb-3">
                         {heroSrc ? (
-                            <Image
+                            <MediaImage
                                 src={heroSrc}
                                 alt={images[activeImage]?.alt_text || item.name}
                                 fill
@@ -172,7 +172,7 @@ export default function MenuItemDetailPage() {
                     </div>
 
                     {images.length > 1 && (
-                        <div className="flex gap-2 overflow-x-auto pb-1">
+                        <div className="scrollbar-slim flex gap-2 overflow-x-auto pb-1.5">
                             {images.map((img, i) => {
                                 const thumb = absoluteMediaUrl(img.image);
                                 if (!thumb) return null;
@@ -186,7 +186,7 @@ export default function MenuItemDetailPage() {
                                                 : "border-transparent hover:border-gray-300"
                                         }`}
                                     >
-                                        <Image
+                                        <MediaImage
                                             src={thumb}
                                             alt={img.alt_text || `${item.name} ${i + 1}`}
                                             fill

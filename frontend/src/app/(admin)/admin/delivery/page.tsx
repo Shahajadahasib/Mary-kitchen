@@ -1,4 +1,5 @@
 "use client";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
@@ -94,17 +95,19 @@ export default function AdminDeliveryPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-900">Delivery Zones</h2>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-primary flex items-center gap-2 text-sm">
-          <Plus className="w-4 h-4" /> Add Zone
-        </button>
-      </div>
+      <AdminPageHeader
+        title="Delivery Zones"
+        action={
+          <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-primary flex items-center gap-2 text-sm">
+            <Plus className="w-4 h-4" /> Add Zone
+          </button>
+        }
+      />
 
       {/* Zones Grid */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {zones.map((zone: any) => (
-          <div key={zone.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <div key={zone.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Truck className="w-5 h-5 text-primary-600" />

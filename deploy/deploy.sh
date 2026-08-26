@@ -18,6 +18,14 @@
 #      answer traffic against the old schema.
 #   4. Restart, then prove the stack actually answers before declaring success.
 #   5. If it does not answer, put the previous commit back.
+#
+# What this script does NOT do: reverse migrations. Rolling back restores the
+# previous *code*, not the previous *schema*, so a destructive migration (a
+# dropped or renamed column) leaves old code running against a schema it does
+# not understand. That is why step 3 takes a database snapshot first — see
+# RESTORING A SNAPSHOT at the bottom of this file — and why schema changes
+# should be split across two deploys (add, backfill, switch reads, then drop in
+# a later release) rather than shipped as one destructive step.
 
 set -euo pipefail
 
@@ -28,6 +36,13 @@ BACKEND_HEALTH_URL="${BACKEND_HEALTH_URL:-http://localhost:8000/api/v1/products/
 FRONTEND_HEALTH_URL="${FRONTEND_HEALTH_URL:-http://localhost:3000/}"
 HEALTH_RETRIES="${HEALTH_RETRIES:-30}"
 HEALTH_INTERVAL="${HEALTH_INTERVAL:-5}"
+
+# Pre-migration database snapshots. Kept on the box; the only thing that makes
+# a rollback past a schema change possible.
+BACKUP_DIR="${BACKUP_DIR:-/var/backups/mary-kitchen}"
+BACKUP_KEEP="${BACKUP_KEEP:-10}"
+DB_NAME="${DB_NAME:-mary_kitchen_db}"
+DB_USER="${DB_USER:-postgres}"
 
 cd "$APP_DIR"
 
@@ -71,6 +86,11 @@ rollback() {
     $COMPOSE build || fail "Rollback build failed"
     $COMPOSE up -d || fail "Rollback restart failed"
     fail "Rolled back to $PREVIOUS_SHA. Production is on the previous release."
+    if [ -n "${SNAPSHOT:-}" ]; then
+        fail "Migrations were NOT reversed. If the previous release cannot read the"
+        fail "current schema, restore the pre-deploy snapshot: $SNAPSHOT"
+        fail "  gunzip -c '$SNAPSHOT' | docker compose exec -T db psql -U $DB_USER -d $DB_NAME"
+    fi
 }
 
 # ── 2. Build new images while the old stack keeps serving ───────────────────
@@ -85,6 +105,23 @@ fi
 # `run --rm` starts a throwaway container on the freshly built image. The old
 # backend is still up and answering; it briefly sees the new schema, which is
 # the safe direction of the two.
+log "Snapshotting the database before migrating"
+# Taken from the still-running db container, so it captures the schema and data
+# exactly as the currently-deployed release left them. A failure here aborts the
+# deploy: migrating without a way back is the thing this step exists to prevent.
+mkdir -p "$BACKUP_DIR"
+SNAPSHOT="$BACKUP_DIR/pre-deploy-$(date -u +%Y%m%dT%H%M%SZ)-${TARGET_SHA:0:8}.sql.gz"
+if $COMPOSE exec -T db pg_dump -U "$DB_USER" "$DB_NAME" | gzip > "$SNAPSHOT"; then
+    log "Snapshot written: $SNAPSHOT ($(du -h "$SNAPSHOT" | cut -f1))"
+else
+    rm -f "$SNAPSHOT"
+    fail "Could not snapshot the database — refusing to migrate. Production is untouched."
+    git reset --hard "$PREVIOUS_SHA"
+    exit 1
+fi
+# Keep the most recent BACKUP_KEEP snapshots; a small VPS disk fills otherwise.
+ls -1t "$BACKUP_DIR"/pre-deploy-*.sql.gz 2>/dev/null | tail -n +$((BACKUP_KEEP + 1)) | xargs -r rm -f
+
 log "Applying migrations"
 if ! $COMPOSE run --rm backend python manage.py migrate --no-input; then
     rollback
@@ -136,3 +173,15 @@ log "Pruning dangling images"
 docker image prune -f >/dev/null 2>&1 || true
 
 log "Deployment complete — now running $TARGET_SHA"
+
+# ── RESTORING A SNAPSHOT ────────────────────────────────────────────────────
+# Snapshots live in $BACKUP_DIR as pre-deploy-<utc-timestamp>-<sha>.sql.gz and
+# are taken immediately before each deploy's migrate step. To restore one:
+#
+#   cd /var/www/Mary-kitchen
+#   docker compose stop backend celery_worker celery_beat   # stop writers first
+#   gunzip -c /var/backups/mary-kitchen/pre-deploy-<...>.sql.gz #     | docker compose exec -T db psql -U postgres -d mary_kitchen_db
+#   docker compose start backend celery_worker celery_beat
+#
+# pg_dump output is not a clean-slate restore: run it against a freshly created
+# database if the current one has diverged, rather than layering it on top.

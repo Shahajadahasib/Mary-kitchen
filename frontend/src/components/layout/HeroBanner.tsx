@@ -36,7 +36,7 @@ export default function HeroBanner() {
                     <div className="flex flex-wrap gap-3 sm:gap-4">
                         <Link
                             href="/shop/products"
-                            className="bg-brand-500 hover:bg-brand-600 text-white font-bold px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl transition-colors flex items-center gap-2 shadow-lg text-sm sm:text-base"
+                            className="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl transition-colors flex items-center gap-2 shadow-lg text-sm sm:text-base"
                         >
                             Shop Now <ArrowRight className="w-4 h-4" />
                         </Link>

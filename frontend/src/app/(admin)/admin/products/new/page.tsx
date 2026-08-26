@@ -268,7 +268,7 @@ export default function NewProductPage() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Product Image */}
-                <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-3">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
                     <h3 className="font-semibold text-gray-800">
                         Product Image
                     </h3>
@@ -317,7 +317,7 @@ export default function NewProductPage() {
                 </div>
 
                 {/* Basic Info */}
-                <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
                     <h3 className="font-semibold text-gray-800">
                         Basic Information
                     </h3>
@@ -384,7 +384,7 @@ export default function NewProductPage() {
                 </div>
 
                 {/* Pricing */}
-                <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
                     <h3 className="font-semibold text-gray-800">Pricing</h3>
                     <div className="grid grid-cols-2 gap-4">
                         <div data-field="base_price">
@@ -426,7 +426,7 @@ export default function NewProductPage() {
                 </div>
 
                 {/* Inventory */}
-                <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
                     <h3 className="font-semibold text-gray-800">Inventory</h3>
                     <div className="grid grid-cols-2 gap-4">
                         <div data-field="sku">
@@ -509,7 +509,7 @@ export default function NewProductPage() {
                 </div>
 
                 {/* Settings */}
-                <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                     <h3 className="font-semibold text-gray-800 mb-4">
                         Settings
                     </h3>

@@ -10,14 +10,28 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Package } from "lucide-react";
 import Link from "next/link";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
+/**
+ * Grocery order history.
+ *
+ * The customer's account spans both storefronts, so this must ask for its own
+ * channel — without `?channel=grocery` the shared endpoint returns restaurant
+ * orders too, and every row here links into `/shop/orders/...`.
+ */
 export default function OrdersPage() {
+    const { ready } = useRequireAuth();
+
     const { data, isLoading } = useQuery({
-        queryKey: ["orders"],
-        queryFn: () => api.get("/orders/").then((r) => r.data),
+        queryKey: ["orders", "grocery"],
+        queryFn: () =>
+            api
+                .get("/orders/", { params: { channel: "grocery" } })
+                .then((r) => r.data),
+        enabled: ready,
     });
 
-    if (isLoading)
+    if (!ready || isLoading)
         return (
             <div className="container-xl px-4 py-6 md:py-8 space-y-4">
                 {[1, 2, 3].map((i) => (

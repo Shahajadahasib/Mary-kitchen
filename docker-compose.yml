@@ -1,16 +1,25 @@
-version: "3.9"
-
 # One stack for both the VPS and a developer machine.
 #
 # The ${VAR:-default} defaults below are the PRODUCTION values, so the server
-# needs no extra configuration: .github/workflows/deploy.yml just runs
-# `docker-compose up -d --build` and gets exactly what it always got.
+# needs no extra configuration: the deploy script (deploy/deploy.sh, invoked by
+# .github/workflows/ci.yml) just runs `docker compose build && up -d` and gets
+# exactly what it always got.
 #
 # A developer machine overrides them with a root-level `.env` file (gitignored,
-# so it never reaches the server). See the README for the three lines it needs.
+# so it never reaches the server). See SETUP.md for the lines it needs.
 # Note that root `.env` is read by Compose itself for the substitutions below,
 # and is a different file from `backend/.env`, which is passed *into* the
 # backend container via `env_file`.
+#
+# ── A note on published ports ────────────────────────────────────────────────
+# Every port below is published to 127.0.0.1, never 0.0.0.0. Docker writes its
+# own DNAT rules ahead of ufw/iptables INPUT, so a `"5432:5432"` mapping is
+# reachable from the internet even on a box whose firewall denies 5432 — which
+# is how a container database with default credentials ends up publicly
+# exposed. Loopback bindings are not affected by that. Nothing outside the host
+# needs these ports: containers reach each other by service name over the
+# compose network, and Nginx proxies to 127.0.0.1 (see
+# deploy/nginx/mary-kitchen.example.conf).
 
 services:
   # ─── PostgreSQL ──────────────────────────────────────────────────────────────
@@ -18,15 +27,18 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: mary_kitchen_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${DB_NAME:-mary_kitchen_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      # Must match DB_PASSWORD in backend/.env. Note that Postgres only reads
+      # this on first initialisation: changing it does NOT change the password
+      # of an existing data volume, that takes an ALTER USER.
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "${BIND_HOST:-127.0.0.1}:5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,7 +48,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "${BIND_HOST:-127.0.0.1}:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -57,8 +69,9 @@ services:
       DB_HOST: db
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
     ports:
-      - "8000:8000"
+      - "${BIND_HOST:-127.0.0.1}:8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -70,6 +83,16 @@ services:
       # machine sets MEDIA_VOLUME=media_data to use the named volume instead,
       # since /var/www/... does not exist there.
       - ${MEDIA_VOLUME:-/var/www/Mary-kitchen/media}:/app/media
+    healthcheck:
+      # No curl in python:slim, and adding it just for this is not worth a
+      # layer. The deploy script polls the same endpoint from the host.
+      test:
+        - CMD-SHELL
+        - python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/products/', timeout=5).status < 500 else 1)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # ─── Celery Worker ────────────────────────────────────────────────────────────
   celery_worker:
@@ -84,10 +107,14 @@ services:
       DB_HOST: db
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
+      # Without this the worker inherits backend/.env's localhost result
+      # backend, which inside a container points at the container itself.
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
     depends_on:
-      - db
-      - redis
-      - backend
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   # ─── Celery Beat (Scheduler) ──────────────────────────────────────────────────
   celery_beat:
@@ -100,9 +127,17 @@ services:
     environment:
       DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-mary_kitchen.settings.production}
       DB_HOST: db
+      # Beat had neither of these and fell back to backend/.env's
+      # redis://localhost:..., so it could not reach the broker from inside the
+      # container and no scheduled task was ever queued.
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   # ─── Next.js Frontend ─────────────────────────────────────────────────────────
   frontend:
@@ -114,15 +149,30 @@ services:
       # container env var it never reaches the client code. The value has to be
       # reachable from the visitor's BROWSER: `backend` is a Compose service
       # name that only resolves container-to-container, never in a browser.
+      #
+      # The default is therefore the live public origin, not a service name.
+      # It used to be `http://backend:8000/api/v1`, which contradicted the note
+      # above and the "defaults are the production values" rule at the top of
+      # this file: a deploy with no root `.env` on the server would bake an
+      # unresolvable host into every visitor's bundle. Nothing would look
+      # wrong from the server's side either — the deploy health check asks
+      # Next.js for a page, and server-side rendering works fine while every
+      # call the browser makes fails. Keep this a real, browser-reachable URL.
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:8000/api/v1}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://marybenskitchen.com/api/v1}
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:8000/api/v1}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://marybenskitchen.com/api/v1}
     ports:
-      - "3000:3000"
+      - "${BIND_HOST:-127.0.0.1}:3000:3000"
     depends_on:
       - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 volumes:
   postgres_data:

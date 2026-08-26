@@ -52,6 +52,9 @@ Mary Kitchen/
 
 ---
 
+`scripts/` holds developer utilities that are not part of the deployed app —
+currently `pull-prod-data.sh`, which seeds a local database from the VPS (see step 6 below).
+
 ## Running locally with Docker (recommended)
 
 Docker is the shortest path to a working local copy: you do not need Python, Node, PostgreSQL or
@@ -152,6 +155,46 @@ Log in with that account at <http://localhost:3000/login> to reach the admin das
 <http://localhost:8000/admin/> for Django admin. A fresh database has no products or menu items —
 add a few through the admin so the storefronts have something to show.
 
+### 6. Optional — seed from production instead
+
+A fresh database is empty. Rather than hand-entering test content, you can copy the live
+catalogue, orders and users down from the VPS:
+
+```bash
+# One-off
+VPS_HOST=user@your-vps bash scripts/pull-prod-data.sh --with-media
+
+# Or save the target once (scripts/.env.local is gitignored)
+echo 'VPS_HOST=user@your-vps' > scripts/.env.local
+bash scripts/pull-prod-data.sh --with-media
+```
+
+Run it from Git Bash on Windows — it is a bash script. Requirements: the local stack already
+running (`docker compose up -d`) and SSH access to the VPS. It asks you to type `yes` before
+doing anything, because it drops your local database.
+
+Drop `--with-media` if you only want rows; product and dish images will then 404 locally.
+
+**What it does, and does not, touch.** Production is only ever read: the script runs `pg_dump`
+and `tar` over SSH, and deletes nothing on the server except the two temporary files it creates
+in `/tmp`. The `DROP DATABASE` runs inside the *local* `mary-kitchen-db-1` container. The dump is
+downloaded and confirmed before anything local is dropped, so a failed connection leaves your
+local database untouched.
+
+Nothing flows the other way either. Deploys ship code, not rows — `deploy/deploy.sh`'s only
+database command is `migrate`. Changes you make locally never reach the VPS.
+
+Three things to know afterwards:
+
+- **Your local admin accounts are gone.** Sign in with production credentials instead; password
+  hashes come across in the dump.
+- **The dump contains real customer data** — names, addresses, phone numbers, order history. It is
+  kept at `.local-data/` (gitignored). Delete it when you are done.
+- **Leave `EMAIL_BACKEND` on the console backend** while real customer rows are loaded, or a
+  status-change test will email an actual customer.
+
+The copy is a snapshot, not a mirror. It goes stale as soon as someone orders on the live site.
+
 ### Everyday commands
 
 ```bash
@@ -196,7 +239,7 @@ local values, and since it is gitignored it can never leak onto the server.
 |---|---|---|
 | `DJANGO_SETTINGS_MODULE` | `mary_kitchen.settings.production` | `mary_kitchen.settings.development` |
 | `MEDIA_VOLUME` | `/var/www/Mary-kitchen/media` (VPS bind mount) | `media_data` (named volume) |
-| `NEXT_PUBLIC_API_URL` | `http://backend:8000/api/v1` | `http://localhost:8000/api/v1` |
+| `NEXT_PUBLIC_API_URL` | `https://marybenskitchen.com/api/v1` | `http://localhost:8000/api/v1` |
 
 Switching to the development settings is what makes the stack usable over plain `http://localhost`:
 production sets `DEBUG=False` (so Django stops serving `/media/`, and uploaded images 404) and forces
@@ -403,3 +446,65 @@ For a fresh production environment:
 4. Point the Stripe webhook endpoint at `https://yourdomain/api/v1/payments/webhook/`.
 5. Run `python manage.py collectstatic` before deployment.
 6. Serve over HTTPS — the security headers are pre-configured in the production settings.
+
+### Published ports
+
+Every port in `docker-compose.yml` is published to `${BIND_HOST:-127.0.0.1}`, never `0.0.0.0`.
+This matters more than it looks. Docker installs its own DNAT rules ahead of ufw's `INPUT` chain,
+so a `"5432:5432"` mapping is reachable from the internet even on a box whose firewall denies
+5432 — which is exactly how a container Postgres ends up publicly listening with default
+credentials. Nothing outside the host needs these ports: containers reach each other by service
+name over the compose network, and Nginx proxies to `127.0.0.1`.
+
+If you ever need to reach the stack from another machine on your LAN, set `BIND_HOST=0.0.0.0` in
+the root `.env` on that development machine only. Never on the VPS.
+
+After deploying this change, confirm from somewhere off the box that the ports really are closed:
+
+```bash
+nc -zv your-vps-host 5432   # expect: refused / timed out
+nc -zv your-vps-host 6379   # expect: refused / timed out
+nc -zv your-vps-host 8000   # expect: refused / timed out
+curl -I https://marybenskitchen.com   # expect: 200, still served through Nginx
+```
+
+If Postgres was previously reachable, treat its credentials as compromised: rotate `DB_PASSWORD`
+(`ALTER USER postgres WITH PASSWORD '…'` — changing `POSTGRES_PASSWORD` alone does nothing to an
+existing data volume), update `backend/.env`, and restart the stack.
+
+### Database snapshots and rolling back
+
+`deploy/deploy.sh` writes a gzipped `pg_dump` to `/var/backups/mary-kitchen/` immediately before
+each migrate step, keeps the last ten, and aborts the deploy if the snapshot cannot be taken.
+
+This exists because **a rollback restores code, not schema.** When a health check fails, the script
+puts the previous commit back and rebuilds — but the migrations it already applied stay applied. If
+the migration was additive (a new nullable column, a new table) the old code is unaffected and the
+rollback is clean. If it dropped or renamed something, the old code is now talking to a schema it
+does not understand, and you have to restore the snapshot; the rollback output prints the exact
+command.
+
+The way to avoid needing it: split destructive schema changes across two releases. Ship the additive
+half first (add the new column, backfill it, write to both), let it bake, and only drop the old
+column in a later deploy once nothing reads it. Then any single deploy is always rollback-safe.
+
+### Downtime during a deploy
+
+`docker compose up -d` recreates the `backend` and `frontend` containers, so there is a window —
+usually a few seconds, up to ~30 for a cold Next.js start — where Nginx has nothing to proxy to and
+returns 502. The build and the migration both happen *before* that, while the old stack is still
+serving, so the window is a container restart rather than a full release.
+
+Two ways to shorten or remove it, in increasing order of effort:
+
+- **Make Nginx wait instead of failing.** Add `proxy_connect_timeout 2s;` plus
+  `proxy_next_upstream error timeout http_502;` and a short retry to the upstream block. Visitors
+  see a slow request instead of an error page. This is a config change on the box, no
+  rearchitecting.
+- **Run two replicas behind Nginx and restart them one at a time.** Give `backend` and `frontend`
+  two instances on distinct ports, list both in the Nginx `upstream`, and have the deploy recreate
+  one, wait for it to answer, then recreate the other. That is genuinely zero-downtime, at the cost
+  of a more complicated compose file and roughly double the memory.
+
+Whichever you choose, deploy at a quiet hour for Darwin (NT is UTC+9:30 and does not observe
+daylight saving), and watch `docker compose logs -f backend` until the health checks pass.

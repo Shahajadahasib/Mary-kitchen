@@ -68,7 +68,7 @@ export function resolveNextPath(
  * Pass the current pathname (plus search, if it matters).
  */
 export function authHref(
-  authPath: "/login" | "/register",
+  authPath: "/login" | "/register" | "/forgot-password",
   from: string | null | undefined
 ): string {
   const next = safeNextPath(from);
