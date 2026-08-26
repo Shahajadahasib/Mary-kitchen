@@ -78,7 +78,7 @@ function LoginForm() {
             <div>
               <div className="flex justify-between mb-1">
                 <label className="text-sm font-medium text-gray-700">Password</label>
-                <Link href="/forgot-password" className="text-xs text-primary-700 hover:underline">
+                <Link href={authHref("/forgot-password", nextPath)} className="text-xs text-primary-700 hover:underline">
                   Forgot password?
                 </Link>
               </div>

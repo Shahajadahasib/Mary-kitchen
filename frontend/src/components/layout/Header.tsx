@@ -36,7 +36,7 @@ export default function Header() {
     const pathname = usePathname();
     const loginHref = authHref("/login", pathname);
     const { cart, fetchCart } = useGroceryCart();
-    const { user, isAuthenticated, logout } = useAuthStore();
+    const { user, isAuthenticated, hasHydrated, logout } = useAuthStore();
     const { data: storeProfile } = useStoreProfile();
     const [menuOpen, setMenuOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -109,7 +109,12 @@ export default function Header() {
     };
 
     const cartCount = cart?.items?.length || 0;
-    const showVerifyBanner = isAuthenticated && user && !user.is_email_verified;
+    // The auth store is persisted and rehydrates after the first paint, so
+    // `isAuthenticated` is false for that first frame. Gate the chrome on
+    // hydration — as RestaurantShell and Footer already do — otherwise a
+    // signed-in user sees "Login" flash before their name appears.
+    const signedIn = hasHydrated && isAuthenticated;
+    const showVerifyBanner = signedIn && user && !user.is_email_verified;
 
     /**
      * Cross-link to the restaurant storefront.
@@ -213,7 +218,7 @@ export default function Header() {
                             </Link>
 
                             {/* Notifications — hidden on mobile (shown in the drawer) */}
-                            {isAuthenticated && (
+                            {signedIn && (
                                 <Link
                                     href="/shop/notifications"
                                     className="header-action group hidden sm:inline-flex"
@@ -236,7 +241,7 @@ export default function Header() {
                             )}
 
                             {/* Account — desktop only */}
-                            {isAuthenticated ? (
+                            {signedIn ? (
                                 <div
                                     className="relative hidden md:block"
                                     ref={userMenuRef}
@@ -401,7 +406,7 @@ export default function Header() {
                     <div className="fixed inset-0 top-[60px] z-40 overflow-y-auto bg-primary-800 md:hidden">
                         <div className="flex flex-col gap-1 p-4">
                             {/* User info */}
-                            {isAuthenticated && user && (
+                            {signedIn && user && (
                                 <div className="mb-2 flex items-center gap-3 rounded-xl bg-primary-700 px-3 py-3">
                                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-600 text-sm font-bold uppercase">
                                         {user.first_name?.[0] ?? (
@@ -420,7 +425,7 @@ export default function Header() {
                             )}
 
                             {/* Login button for guests */}
-                            {!isAuthenticated && (
+                            {!signedIn && (
                                 <Link
                                     href={loginHref}
                                     onClick={() => setMenuOpen(false)}
@@ -482,7 +487,7 @@ export default function Header() {
                             </Link>
 
                             {/* Account links */}
-                            {isAuthenticated && (
+                            {signedIn && (
                                 <>
                                     <p className="mb-1 mt-4 px-3 text-xs font-semibold uppercase tracking-wider text-primary-400">
                                         Account
