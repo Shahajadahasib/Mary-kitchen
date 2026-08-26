@@ -28,17 +28,26 @@ CACHES = {
 }
 
 # Logging
+#
+# Echoing every SQL statement is useful at a local terminal and unusable in CI,
+# which runs these same settings: one test run emits a six-figure number of
+# CREATE INDEX lines and buries the result line the run actually exists to
+# report. Both levels are therefore env-driven, defaulting to the verbose local
+# behaviour; .github/workflows/ci.yml turns them down.
+DJANGO_LOG_LEVEL = config("DJANGO_LOG_LEVEL", default="DEBUG")  # noqa: F405
+DJANGO_DB_LOG_LEVEL = config("DJANGO_DB_LOG_LEVEL", default="DEBUG")  # noqa: F405
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "handlers": {
         "console": {"class": "logging.StreamHandler"},
     },
-    "root": {"handlers": ["console"], "level": "DEBUG"},
+    "root": {"handlers": ["console"], "level": DJANGO_LOG_LEVEL},
     "loggers": {
         "django.db.backends": {
             "handlers": ["console"],
-            "level": "DEBUG",
+            "level": DJANGO_DB_LOG_LEVEL,
             "propagate": False,
         },
     },

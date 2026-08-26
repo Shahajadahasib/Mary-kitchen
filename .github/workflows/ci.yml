@@ -56,6 +56,12 @@ jobs:
             DJANGO_SETTINGS_MODULE: mary_kitchen.settings.development
             SECRET_KEY: ci-secret-key-not-for-production
             DEBUG: "True"
+            # settings.development echoes every SQL statement, which is right at
+            # a local terminal and useless here: it pushed a single run past
+            # GitHub's log limits and hid the "Ran N tests / OK" line the job
+            # exists to report. Warnings and above are plenty in CI.
+            DJANGO_LOG_LEVEL: WARNING
+            DJANGO_DB_LOG_LEVEL: WARNING
             ALLOWED_HOSTS: localhost,127.0.0.1
             DB_ENGINE: django.db.backends.postgresql
             DB_NAME: mary_kitchen_test
