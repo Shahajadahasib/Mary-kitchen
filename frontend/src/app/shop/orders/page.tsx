@@ -10,6 +10,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Package } from "lucide-react";
 import Link from "next/link";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 /**
  * Grocery order history.
@@ -19,15 +20,18 @@ import Link from "next/link";
  * orders too, and every row here links into `/shop/orders/...`.
  */
 export default function OrdersPage() {
+    const { ready } = useRequireAuth();
+
     const { data, isLoading } = useQuery({
         queryKey: ["orders", "grocery"],
         queryFn: () =>
             api
                 .get("/orders/", { params: { channel: "grocery" } })
                 .then((r) => r.data),
+        enabled: ready,
     });
 
-    if (isLoading)
+    if (!ready || isLoading)
         return (
             <div className="container-xl px-4 py-6 md:py-8 space-y-4">
                 {[1, 2, 3].map((i) => (
