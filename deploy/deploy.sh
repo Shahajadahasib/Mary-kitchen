@@ -144,16 +144,33 @@ if ! $COMPOSE up -d --remove-orphans; then
 fi
 
 # ── 5. Prove it actually works ──────────────────────────────────────────────
+#
+# Two headers matter on these probes, and both exist because their absence
+# produced a false failure rather than an obvious one:
+#
+#   X-Forwarded-Proto: https  — production may set SECURE_SSL_REDIRECT, and
+#     Django trusts this header (SECURE_PROXY_SSL_HEADER). Without it the probe
+#     gets a 301 to an https://localhost that nothing is listening on. `curl -f`
+#     does not fail on a 3xx, so the check would pass while proving nothing.
+#
+# The Host header needs no override: settings/production.py always accepts
+# loopback names, which is what makes http://localhost:8000 a valid request at
+# all. It did not, once, and the deploy rolled back a perfectly good release.
+#
+# Only a real 2xx counts as healthy: --fail rejects >=400 and the explicit
+# status check rejects the redirects above it.
 wait_for() {
-    local name="$1" url="$2" i
+    local name="$1" url="$2" i code
     for ((i = 1; i <= HEALTH_RETRIES; i++)); do
-        if curl -fsS --max-time 10 -o /dev/null "$url"; then
-            log "$name healthy after $((i * HEALTH_INTERVAL))s"
+        code="$(curl -sS --max-time 10 -o /dev/null -w '%{http_code}' \
+            -H 'X-Forwarded-Proto: https' "$url" 2>/dev/null || true)"
+        if [[ "$code" =~ ^2[0-9][0-9]$ ]]; then
+            log "$name healthy after $((i * HEALTH_INTERVAL))s (HTTP $code)"
             return 0
         fi
         sleep "$HEALTH_INTERVAL"
     done
-    fail "$name did not become healthy within $((HEALTH_RETRIES * HEALTH_INTERVAL))s ($url)"
+    fail "$name did not become healthy within $((HEALTH_RETRIES * HEALTH_INTERVAL))s ($url, last HTTP ${code:-none})"
     return 1
 }
 
