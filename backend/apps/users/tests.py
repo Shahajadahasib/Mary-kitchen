@@ -5,6 +5,7 @@ the grocery shop and the restaurant at the same time. The privilege-escalation
 cases matter most: ``is_staff`` is what gates every admin API endpoint, and
 registration is an unauthenticated, public endpoint.
 """
+from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
@@ -16,6 +17,25 @@ from core.test_factories import make_admin, make_user
 # django-axes counts failed logins per IP and would leak lockout state between
 # test methods, turning an unrelated later assertion red.
 DISABLE_LOCKOUTS = override_settings(AXES_ENABLED=False)
+
+
+class ThrottleResetMixin:
+    """Start each test with an empty throttle history.
+
+    DRF keeps its rate-limit counters in the cache, which is process-wide and
+    is not rolled back with the database between test methods. The credential
+    endpoints are capped at ten requests a minute, so without this a class with
+    a handful of login tests would eventually charge one test's attempts to the
+    next and fail on an unrelated assertion.
+    """
+
+    def setUp(self):
+        super().setUp()
+        cache.clear()
+
+    def tearDown(self):
+        cache.clear()
+        super().tearDown()
 
 
 class UserModelTests(TestCase):
@@ -57,7 +77,7 @@ class UserModelTests(TestCase):
 
 
 @DISABLE_LOCKOUTS
-class RegistrationTests(APITestCase):
+class RegistrationTests(ThrottleResetMixin, APITestCase):
     url = "/api/v1/auth/register/"
 
     def _payload(self, **overrides):
@@ -109,10 +129,11 @@ class RegistrationTests(APITestCase):
 
 
 @DISABLE_LOCKOUTS
-class LoginTests(APITestCase):
+class LoginTests(ThrottleResetMixin, APITestCase):
     url = "/api/v1/auth/login/"
 
     def setUp(self):
+        super().setUp()  # clears the throttle history; see ThrottleResetMixin
         self.password = "test-pass-12345"
         self.user = make_user(email="customer@example.com", password=self.password)
 
@@ -198,3 +219,63 @@ class AdminBoundaryTests(APITestCase):
     def test_staff_user_is_allowed(self):
         self.client.force_authenticate(user=make_admin())
         self.assertEqual(self.client.get(self.url).status_code, status.HTTP_200_OK)
+
+
+@DISABLE_LOCKOUTS
+class AuthThrottleTests(ThrottleResetMixin, APITestCase):
+    """The credential endpoints are rate limited separately from browsing.
+
+    The anonymous rate has to be generous: browsing either storefront is
+    anonymous and a single page view costs several requests. Password guessing
+    must not inherit that generosity, so login, register, OTP verify and
+    password-reset confirm carry `throttle_scope = "auth"`, which is an order
+    of magnitude tighter.
+    """
+
+    login_url = "/api/v1/auth/login/"
+
+    SCOPED_VIEWS = [
+        ("apps.users.views", "LoginView"),
+        ("apps.users.views", "RegisterView"),
+        ("apps.users.views", "OTPVerifyView"),
+        ("apps.users.views", "PasswordResetConfirmView"),
+    ]
+
+    def test_login_stops_accepting_attempts_after_ten_in_a_minute(self):
+        # Empty payloads fail validation before authentication is attempted, so
+        # this measures the throttle rather than django-axes' lockout.
+        for attempt in range(10):
+            response = self.client.post(self.login_url, {}, format="json")
+            self.assertNotEqual(
+                response.status_code,
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                f"throttled early, on attempt {attempt + 1}",
+            )
+
+        response = self.client.post(self.login_url, {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_browsing_the_catalogue_is_not_held_to_the_credential_rate(self):
+        """A shopper making a dozen catalogue reads must not be cut off.
+
+        This is the regression that prompted the change: the anonymous rate was
+        low enough that a normal session could be shown 429s partway through.
+        """
+        for _ in range(15):
+            response = self.client.get("/api/v1/products/")
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_the_credential_endpoints_declare_the_auth_scope(self):
+        """Guards the wiring itself.
+
+        The "auth" rate existed in settings for a long time while no view
+        referenced it, so it silently did nothing. If someone drops the scope
+        from one of these views, that endpoint quietly falls back to the
+        browse rate.
+        """
+        import importlib
+
+        for module_path, class_name in self.SCOPED_VIEWS:
+            with self.subTest(view=class_name):
+                view = getattr(importlib.import_module(module_path), class_name)
+                self.assertEqual(getattr(view, "throttle_scope", None), "auth")
