@@ -46,12 +46,23 @@ X_FRAME_OPTIONS = "DENY"
 
 # ─── Reverse proxy: real client IP (Axes + django-ratelimit) ─────────────────
 # Nginx / Cloudflare typically set X-Forwarded-For; fall back to REMOTE_ADDR.
-AXES_META_PRECEDENCE_ORDER = [
+#
+# The IPWARE_ prefix is not a typo and must not be "corrected" back: django-axes
+# renamed this setting in v6 to match the django-ipware layer it delegates to,
+# and 8.3.1 only still reads the old AXES_META_PRECEDENCE_ORDER under an
+# axes.W004 deprecation warning. Once that name is dropped, the old spelling
+# would be read by nothing at all — axes would silently fall back to
+# REMOTE_ADDR, which behind Nginx is 127.0.0.1 for every visitor alike. Failed
+# logins would then share a single lockout counter, so one bot could lock out
+# the entire customer base.
+AXES_IPWARE_META_PRECEDENCE_ORDER = [
     "HTTP_X_FORWARDED_FOR",
     "REMOTE_ADDR",
 ]
 AXES_VERBOSE = True
 
+# Unrelated to the above despite the similar shape: this one belongs to
+# django-ratelimit, which has not renamed anything.
 RATELIMIT_IP_META_KEY = "HTTP_X_FORWARDED_FOR"
 
 # S3 Storage
